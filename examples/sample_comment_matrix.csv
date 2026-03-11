@@ -1,3 +1,3 @@
-Comment No.,Agency Comment,Line,Rev,Status
-1,Clarify conservative assumptions used in compatibility analysis.,120-124,Add explicit worst-case antenna orientation assumption.,Open
-2,Typo in interference metric definition.,204,Correct spelling and tighten terminology.,Completed
+Comment Number,Reviewer Initials,Agency,Report Version,Section,Page,Line,"Comment Type: Editorial/Grammar, Clarification, Technical",Agency Notes,Agency Suggested Text Change,Status
+1,AB,Agency X,Draft,2.1,10,120-124,Technical,"Clarify conservative assumptions used in the compatibility analysis.","The analysis assumes worst-case antenna pointing toward the victim receiver to provide a conservative estimate.",Open
+2,CD,Agency Y,Draft,3.4,18,204,Editorial/Grammar,"Typo in the interference metric description.","Replace 'intereference' with 'interference' and keep terminology consistent.",Completed

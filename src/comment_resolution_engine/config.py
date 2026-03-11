@@ -7,10 +7,35 @@ from typing import Dict, Iterable
 
 DEFAULT_SYNONYMS: Dict[str, list[str]] = {
     "comment_number": ["comment no.", "comment no", "comment number", "cmt #", "cmt#", "comment #"],
-    "comment": ["comment", "comment text", "agency comment", "issue"],
+    "reviewer_initials": ["reviewer initials", "initials", "reviewer"],
+    "agency": ["agency", "organization", "org"],
+    "report_version": ["report version", "version", "report rev", "report revision"],
+    "section": ["section", "sec."],
+    "page": ["page", "pg."],
     "line_number": ["line", "line number", "line no.", "line ref", "source line"],
-    "revision": ["rev", "revision", "proposed revision", "report revision"],
-    "status": ["status", "state", "resolution status"],
+    "comment_type": [
+        "comment type",
+        "comment type: editorial/grammar, clarification, technical",
+        "type",
+        "category",
+        "classification",
+    ],
+    "agency_notes": ["agency notes", "comment", "reviewer comment", "agency comment", "notes"],
+    "agency_suggested_text": [
+        "agency suggested text change",
+        "suggested text",
+        "proposed text",
+        "suggested change",
+        "proposed resolution",
+        "suggested report text",
+        "text change",
+    ],
+    "ntia_comments": ["ntia comments", "internal comments", "disposition notes"],
+    "disposition": ["comment disposition", "accept reject", "accept/reject", "disposition"],
+    "resolution": ["resolution", "proposed resolution", "final text", "proposed report text"],
+    "status": ["status", "state", "resolution status", "row status"],
+    "report_context": ["report context", "context", "pdf context"],
+    "resolution_task": ["resolution task", "task", "llm task"],
 }
 
 
@@ -24,14 +49,32 @@ class ColumnMappingConfig:
         variants.extend(self.synonyms.get(canonical_key, []))
         return [normalize_header(v) for v in variants if v]
 
+    def resolve_column_name(self, existing_columns: Iterable[str], canonical_key: str) -> str:
+        lookup = {normalize_header(col): col for col in existing_columns}
+        for variant in self.all_variants(canonical_key):
+            if variant in lookup:
+                return lookup[variant]
+        return self.columns.get(canonical_key, canonical_key)
+
 
 DEFAULT_MAPPING = ColumnMappingConfig(
     columns={
         "comment_number": "Comment Number",
-        "comment": "Comment",
-        "line_number": "Line Number",
-        "revision": "Revision",
+        "reviewer_initials": "Reviewer Initials",
+        "agency": "Agency",
+        "report_version": "Report Version",
+        "section": "Section",
+        "page": "Page",
+        "line_number": "Line",
+        "comment_type": "Comment Type: Editorial/Grammar, Clarification, Technical",
+        "agency_notes": "Agency Notes",
+        "agency_suggested_text": "Agency Suggested Text Change",
+        "ntia_comments": "NTIA Comments",
+        "disposition": "Comment Disposition",
+        "resolution": "Resolution",
         "status": "Status",
+        "report_context": "Report Context",
+        "resolution_task": "Resolution Task",
     },
     synonyms=DEFAULT_SYNONYMS,
 )
