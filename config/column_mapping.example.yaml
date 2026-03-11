@@ -1,0 +1,28 @@
+columns:
+  comment_number: "Comment Number"
+  comment: "Comment"
+  line_number: "Line Number"
+  revision: "Revision"
+  status: "Status"
+
+synonyms:
+  comment_number:
+    - "Comment No."
+    - "Comment Number"
+    - "Cmt #"
+    - "Comment #"
+  comment:
+    - "Comment Text"
+    - "Agency Comment"
+  line_number:
+    - "Line"
+    - "Line No."
+    - "Line Number"
+  revision:
+    - "Rev"
+    - "Revision"
+    - "Proposed Revision"
+  status:
+    - "Status"
+    - "Resolution Status"
+    - "State"
