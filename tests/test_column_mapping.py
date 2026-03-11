@@ -3,7 +3,7 @@ import pytest
 pd = pytest.importorskip("pandas")
 
 from comment_resolution_engine.config import load_column_mapping
-from comment_resolution_engine.excel_io import normalize_comment_matrix
+from comment_resolution_engine.excel_io import CANONICAL_COLUMNS, normalize_comment_matrix
 
 
 def test_normalize_comment_matrix_with_synonyms():
@@ -11,15 +11,23 @@ def test_normalize_comment_matrix_with_synonyms():
     source = pd.DataFrame(
         {
             "Cmt #": [1],
-            "Agency Comment": ["Clarify assumptions"],
+            "Reviewer Comment": ["Clarify assumptions"],
             "Line": ["102-105"],
-            "Rev": ["Add assumption language"],
+            "Suggested Text": ["Add assumption language"],
             "Resolution Status": ["Open"],
+            "Category": ["technical"],
+            "Internal Comments": ["Existing note"],
+            "Accept/Reject": ["Reject"],
+            "Proposed Resolution": ["No change"],
         }
     )
 
     out = normalize_comment_matrix(source, mapping)
 
-    assert list(out.columns) == ["comment_number", "comment", "line_number", "revision", "status"]
+    assert list(out.columns) == CANONICAL_COLUMNS
     assert out.iloc[0]["comment_number"] == 1
     assert out.iloc[0]["line_number"] == "102-105"
+    assert out.iloc[0]["agency_notes"] == "Clarify assumptions"
+    assert out.iloc[0]["agency_suggested_text"] == "Add assumption language"
+    assert out.iloc[0]["status"] == "Open"
+    assert out.iloc[0]["disposition"] == "Reject"

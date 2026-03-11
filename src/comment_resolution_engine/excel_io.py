@@ -8,18 +8,23 @@ from .config import ColumnMappingConfig, normalize_header
 if TYPE_CHECKING:
     import pandas as pd
 
-CANONICAL_COLUMNS = ["comment_number", "comment", "line_number", "revision", "status"]
-OUTPUT_COLUMNS = [
-    "Comment Number",
-    "Comment",
-    "Line Number",
-    "Revision",
-    "Status",
-    "Comment Type",
-    "Source Line Reference",
-    "Insert Location",
-    "Proposed Report Text",
-    "Resolution Task",
+CANONICAL_COLUMNS = [
+    "comment_number",
+    "reviewer_initials",
+    "agency",
+    "report_version",
+    "section",
+    "page",
+    "line_number",
+    "comment_type",
+    "agency_notes",
+    "agency_suggested_text",
+    "status",
+    "ntia_comments",
+    "disposition",
+    "resolution",
+    "report_context",
+    "resolution_task",
 ]
 
 
@@ -35,9 +40,10 @@ def _require_openpyxl():
     try:
         from openpyxl import load_workbook
         from openpyxl.styles import Alignment, Font
+        from openpyxl.utils import get_column_letter
     except ModuleNotFoundError as exc:
         raise RuntimeError("openpyxl is required for Excel formatting. Install dependencies with `pip install -r requirements.txt`.") from exc
-    return load_workbook, Alignment, Font
+    return load_workbook, Alignment, Font, get_column_letter
 
 
 def _build_header_lookup(columns: list[str]) -> dict[str, str]:
@@ -68,11 +74,11 @@ def read_comment_matrix(path: str | Path, mapping: ColumnMappingConfig):
 
 
 def write_resolution_workbook(df, output_path: str | Path) -> None:
-    load_workbook, Alignment, Font = _require_openpyxl()
+    load_workbook, Alignment, Font, get_column_letter = _require_openpyxl()
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    ordered = df.reindex(columns=OUTPUT_COLUMNS)
+    ordered = df.copy()
     ordered.to_excel(output, index=False)
 
     wb = load_workbook(output)
@@ -80,15 +86,43 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
 
-    widths = {"A": 16, "B": 55, "C": 14, "D": 28, "E": 14, "F": 16, "G": 22, "H": 22, "I": 65, "J": 70}
-    for col, width in widths.items():
-        ws.column_dimensions[col].width = width
+    width_by_header = {
+        "Comment Number": 16,
+        "Reviewer Initials": 16,
+        "Agency": 18,
+        "Report Version": 16,
+        "Section": 16,
+        "Page": 12,
+        "Line": 14,
+        "Line Number": 14,
+        "Comment Type": 22,
+        "Agency Notes": 55,
+        "Agency Suggested Text Change": 55,
+        "NTIA Comments": 65,
+        "Comment Disposition": 18,
+        "Resolution": 70,
+        "Report Context": 70,
+        "Resolution Task": 70,
+    }
 
-    wrap_cols = {"B", "D", "I", "J"}
+    wrap_headers = {
+        "Agency Notes",
+        "Agency Suggested Text Change",
+        "NTIA Comments",
+        "Resolution",
+        "Report Context",
+        "Resolution Task",
+    }
+
+    for idx, col_name in enumerate(ordered.columns, start=1):
+        width = width_by_header.get(col_name, 18)
+        ws.column_dimensions[get_column_letter(idx)].width = width
+
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
         for cell in row:
             if cell.row == 1:
                 cell.font = Font(bold=True)
-            cell.alignment = Alignment(vertical="top", wrap_text=cell.column_letter in wrap_cols)
+            header_val = ws.cell(row=1, column=cell.column).value
+            cell.alignment = Alignment(vertical="top", wrap_text=str(header_val) in wrap_headers)
 
     wb.save(output)

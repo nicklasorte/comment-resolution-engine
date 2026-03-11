@@ -1,9 +1,20 @@
 columns:
   comment_number: "Comment Number"
-  comment: "Comment"
-  line_number: "Line Number"
-  revision: "Revision"
+  reviewer_initials: "Reviewer Initials"
+  agency: "Agency"
+  report_version: "Report Version"
+  section: "Section"
+  page: "Page"
+  line_number: "Line"
+  comment_type: "Comment Type: Editorial/Grammar, Clarification, Technical"
+  agency_notes: "Agency Notes"
+  agency_suggested_text: "Agency Suggested Text Change"
+  ntia_comments: "NTIA Comments"
+  disposition: "Comment Disposition"
+  resolution: "Resolution"
   status: "Status"
+  report_context: "Report Context"
+  resolution_task: "Resolution Task"
 
 synonyms:
   comment_number:
@@ -11,18 +22,70 @@ synonyms:
     - "Comment Number"
     - "Cmt #"
     - "Comment #"
-  comment:
-    - "Comment Text"
-    - "Agency Comment"
+  reviewer_initials:
+    - "Reviewer Initials"
+    - "Initials"
+    - "Reviewer"
+  agency:
+    - "Agency"
+    - "Organization"
+    - "Org"
+  report_version:
+    - "Report Version"
+    - "Version"
+    - "Report Rev"
+  section:
+    - "Section"
+    - "Sec."
+  page:
+    - "Page"
+    - "Pg."
   line_number:
     - "Line"
     - "Line No."
     - "Line Number"
-  revision:
-    - "Rev"
-    - "Revision"
-    - "Proposed Revision"
+  comment_type:
+    - "Comment Type"
+    - "Comment Type: Editorial/Grammar, Clarification, Technical"
+    - "Type"
+    - "Category"
+    - "Classification"
+  agency_notes:
+    - "Agency Notes"
+    - "Comment"
+    - "Reviewer Comment"
+    - "Agency Comment"
+  agency_suggested_text:
+    - "Agency Suggested Text Change"
+    - "Suggested Text"
+    - "Proposed Text"
+    - "Suggested Change"
+    - "Proposed Resolution"
+    - "Suggested Report Text"
+  ntia_comments:
+    - "NTIA Comments"
+    - "Internal Comments"
+    - "Disposition Notes"
+  disposition:
+    - "Comment Disposition"
+    - "Accept Reject"
+    - "Accept/Reject"
+    - "Disposition"
+  resolution:
+    - "Resolution"
+    - "Proposed Resolution"
+    - "Final Text"
+    - "Proposed Report Text"
   status:
     - "Status"
     - "Resolution Status"
     - "State"
+    - "Row Status"
+  report_context:
+    - "Report Context"
+    - "Context"
+    - "PDF Context"
+  resolution_task:
+    - "Resolution Task"
+    - "Task"
+    - "LLM Task"
