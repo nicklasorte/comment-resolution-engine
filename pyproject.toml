@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comment-resolution-engine"
+version = "0.1.0"
+description = "Reusable tooling to convert comment matrices into report-ready resolution tables"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Comment Resolution Engine Contributors"}]
+dependencies = [
+  "pandas>=2.0",
+  "openpyxl>=3.1",
+  "PyYAML>=6.0",
+  "pypdf>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+comment-resolution-engine = "comment_resolution_engine.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
