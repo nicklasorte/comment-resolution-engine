@@ -24,7 +24,6 @@ def classify_comment_type(comment_text: str) -> str:
 
 
 def build_resolution_task(row: ResolutionRow) -> str:
-    status = (row.status or "").strip().lower()
     status_instruction = (
         "Status handling: if status is completed/complete/closed/resolved, set output Status to Complete and keep Proposed Report Text blank unless updated text is explicitly required."
     )
