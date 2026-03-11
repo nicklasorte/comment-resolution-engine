@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+*.log
+outputs/*.xlsx
+!outputs/.gitkeep
+
+# Keep repo text-only for examples/templates
+examples/*.xlsx
+templates/*.xlsx
