@@ -11,6 +11,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--report", required=False, help="Path to report PDF with line numbers.")
     parser.add_argument("--output", required=True, help="Path for generated output workbook.")
     parser.add_argument("--config", required=False, help="Path to YAML column mapping config.")
+    parser.add_argument("--patch-output", required=False, help="Optional path for generated report patch JSON.")
+    parser.add_argument("--faq-output", required=False, help="Optional path for generated FAQ/issue log markdown.")
+    parser.add_argument("--summary-output", required=False, help="Optional path for generated section summary markdown.")
+    parser.add_argument("--briefing-output", required=False, help="Optional path for generated working group briefing bullets.")
     return parser
 
 
@@ -21,6 +25,10 @@ def main() -> None:
         report_path=args.report,
         output_path=args.output,
         config_path=args.config,
+        patch_output=args.patch_output,
+        faq_output=args.faq_output,
+        summary_output=args.summary_output,
+        briefing_output=args.briefing_output,
     )
     print(f"Wrote {len(df)} rows to {args.output}")
 

@@ -28,6 +28,8 @@ def test_write_resolution_workbook_formats_sheet(tmp_path: Path):
             "Resolution": ["The report clarifies the scope of assumptions."],
             "Report Context": ["L33: System assumptions are defined here"],
             "Resolution Task": ["Draft NTIA Comments, Comment Disposition (Accept/Reject), and Resolution text that can be inserted into the report. Comment number: 1."],
+            "Validation Status": ["PASS"],
+            "Validation Notes": [""],
         }
     )
 

@@ -5,16 +5,25 @@ columns:
   report_version: "Report Version"
   section: "Section"
   page: "Page"
+  line: "Line"
   line_number: "Line"
   comment_type: "Comment Type: Editorial/Grammar, Clarification, Technical"
   agency_notes: "Agency Notes"
   agency_suggested_text: "Agency Suggested Text Change"
+  wg_chain_comments: "WG Chain Comments"
+  comment_disposition: "Comment Disposition"
   ntia_comments: "NTIA Comments"
   disposition: "Comment Disposition"
   resolution: "Resolution"
   status: "Status"
   report_context: "Report Context"
   resolution_task: "Resolution Task"
+  comment_cluster_id: "Comment Cluster Id"
+  intent_classification: "Intent Classification"
+  section_group: "Section Group"
+  heat_level: "Heat Level"
+  validation_status: "Validation Status"
+  validation_notes: "Validation Notes"
 
 synonyms:
   comment_number:
@@ -40,6 +49,10 @@ synonyms:
   page:
     - "Page"
     - "Pg."
+  line:
+    - "Line"
+    - "Line No."
+    - "Line Number"
   line_number:
     - "Line"
     - "Line No."
@@ -62,10 +75,19 @@ synonyms:
     - "Suggested Change"
     - "Proposed Resolution"
     - "Suggested Report Text"
+  wg_chain_comments:
+    - "Working Group Chain Comments"
+    - "WG Chain Comments"
+    - "Coordination Notes"
   ntia_comments:
     - "NTIA Comments"
     - "Internal Comments"
     - "Disposition Notes"
+  comment_disposition:
+    - "Comment Disposition"
+    - "Accept Reject"
+    - "Accept/Reject"
+    - "Disposition"
   disposition:
     - "Comment Disposition"
     - "Accept Reject"

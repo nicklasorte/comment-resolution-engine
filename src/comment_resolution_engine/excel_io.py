@@ -15,16 +15,25 @@ CANONICAL_COLUMNS = [
     "report_version",
     "section",
     "page",
+    "line",
     "line_number",
     "comment_type",
     "agency_notes",
     "agency_suggested_text",
+    "wg_chain_comments",
+    "comment_disposition",
     "status",
     "ntia_comments",
     "disposition",
     "resolution",
     "report_context",
     "resolution_task",
+    "comment_cluster_id",
+    "intent_classification",
+    "section_group",
+    "heat_level",
+    "validation_status",
+    "validation_notes",
 ]
 
 
@@ -98,9 +107,16 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "Comment Type": 22,
         "Agency Notes": 55,
         "Agency Suggested Text Change": 55,
+        "WG Chain Comments": 55,
         "NTIA Comments": 65,
         "Comment Disposition": 18,
         "Resolution": 70,
+        "Validation Status": 20,
+        "Validation Notes": 70,
+        "Comment Cluster Id": 22,
+        "Intent Classification": 26,
+        "Section Group": 18,
+        "Heat Level": 16,
         "Report Context": 70,
         "Resolution Task": 70,
     }
@@ -108,10 +124,12 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
     wrap_headers = {
         "Agency Notes",
         "Agency Suggested Text Change",
+        "WG Chain Comments",
         "NTIA Comments",
         "Resolution",
         "Report Context",
         "Resolution Task",
+        "Validation Notes",
     }
 
     for idx, col_name in enumerate(ordered.columns, start=1):

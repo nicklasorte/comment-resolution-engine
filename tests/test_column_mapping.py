@@ -26,7 +26,7 @@ def test_normalize_comment_matrix_with_synonyms():
 
     assert list(out.columns) == CANONICAL_COLUMNS
     assert out.iloc[0]["comment_number"] == 1
-    assert out.iloc[0]["line_number"] == "102-105"
+    assert out.iloc[0]["line"] == "102-105"
     assert out.iloc[0]["agency_notes"] == "Clarify assumptions"
     assert out.iloc[0]["agency_suggested_text"] == "Add assumption language"
     assert out.iloc[0]["status"] == "Open"

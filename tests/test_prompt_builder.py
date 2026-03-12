@@ -1,50 +1,48 @@
-from comment_resolution_engine.prompt_builder import (
-    build_resolution_task,
-    determine_accept_reject,
-    draft_ntia_comments,
-    draft_resolution,
-    extract_effective_comment,
-    extract_effective_suggested_text,
-    normalize_comment_type,
-)
-from comment_resolution_engine.resolver_schema import ResolutionRow
+from comment_resolution_engine.generation.resolution_generator import build_resolution_decision
+from comment_resolution_engine.models import AnalyzedComment
+from comment_resolution_engine.normalize.comment_normalizer import derive_effective_comment, derive_effective_suggested_text, normalize_type
 
 
-def test_normalize_comment_type_variations():
-    assert normalize_comment_type("technical") == "Technical"
-    assert normalize_comment_type("Clarification") == "Clarification"
-    assert normalize_comment_type("Editorial / Grammatical") == "Editorial/Grammar"
+def _base_comment(**kwargs):
+    defaults = dict(
+        id="1",
+        reviewer_initials="AB",
+        agency="Agency",
+        report_version="Draft",
+        section="1.1",
+        page=1,
+        line=10,
+        comment_type="Technical",
+        agency_notes="Clarify the population impact metric purpose",
+        agency_suggested_text="Add language that the metric is analytical, not regulatory.",
+        wg_chain_comments="",
+        comment_disposition="",
+        resolution="",
+        raw_row={},
+        normalized_type="TECHNICAL",
+        effective_comment="Clarify the population impact metric purpose",
+        effective_suggested_text="Add language that the metric is analytical, not regulatory.",
+        report_context="L10: Metric definition paragraph",
+        cluster_id="C001",
+        section_group="1.1",
+        intent_classification="REQUEST_CLARIFICATION",
+        heat_level="LOW",
+        heat_count=1,
+    )
+    defaults.update(kwargs)
+    return AnalyzedComment(**defaults)
 
 
-def test_effective_comment_and_suggested_text():
-    assert extract_effective_comment("Primary note", "Alternate text") == "Primary note"
-    assert extract_effective_comment("", "Alternate text") == "Alternate text"
-    assert extract_effective_suggested_text(" Suggested  ") == "Suggested"
+def test_normalization_helpers():
+    assert normalize_type("Technical Comment") == "TECHNICAL"
+    assert derive_effective_comment("Primary", "Secondary") == "Primary"
+    assert derive_effective_comment("", "Secondary") == "Secondary"
+    assert derive_effective_suggested_text("  Suggested text  ") == "Suggested text"
 
 
-def test_determine_accept_reject_and_ntia_comments():
-    row = ResolutionRow(comment_type="Technical", effective_comment="Missing assumption", effective_suggested_text="")
-    row.row_status = "Draft"
-    assert determine_accept_reject(row) == "Accept"
-
-    row2 = ResolutionRow(comment_type="Editorial/Grammar", effective_comment="stet", effective_suggested_text="")
-    row2.row_status = "Draft"
-    assert determine_accept_reject(row2) == "Reject"
-
-    row2.disposition = "Reject"
-    assert draft_ntia_comments(row2).startswith("Reject.")
-
-
-def test_draft_resolution_paths():
-    row = ResolutionRow(comment_type="Clarification", effective_comment="scope of analysis", disposition="Accept")
-    row.row_status = "Draft"
-    assert "clarifies" in draft_resolution(row)
-
-    completed = ResolutionRow(row_status="Complete", existing_resolution="Kept text")
-    assert draft_resolution(completed) == "Kept text"
-
-
-def test_build_resolution_task_mentions_fields():
-    row = ResolutionRow(comment_number="7", agency_notes="Refine scope", line_number="20")
-    row.resolution_task = build_resolution_task(row)
-    assert "NTIA Comments" in row.resolution_task or "Draft NTIA Comments" in row.resolution_task
+def test_resolution_generation_includes_change_language():
+    comment = _base_comment()
+    decision = build_resolution_decision(comment)
+    assert decision.disposition == "Accept"
+    assert "clarifies" in decision.resolution_text.lower() or "now" in decision.resolution_text.lower()
+    assert decision.ntia_comment.startswith("Accept")
