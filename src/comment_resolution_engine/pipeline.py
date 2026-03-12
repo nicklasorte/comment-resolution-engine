@@ -13,6 +13,9 @@ from .generation import (
     build_resolution_decision,
     build_section_briefs,
     build_shared_resolutions,
+    assemble_rev2_draft,
+    build_section_rewrites,
+    DEFAULT_DRAFT_MODE,
     generate_faq,
     top_briefing_points,
 )
@@ -20,6 +23,7 @@ from .ingest import load_pdf_context, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
 from .validation import validate_resolution
+from .validation.rev2_validator import validate_section_rewrite
 
 
 def _row_status(status: str) -> str:
@@ -70,6 +74,14 @@ def run_pipeline(
     faq_output: str | Path | None = None,
     summary_output: str | Path | None = None,
     briefing_output: str | Path | None = None,
+    draft_rev2: bool = False,
+    draft_mode: str = DEFAULT_DRAFT_MODE,
+    draft_sections: list[str] | None = None,
+    draft_high_priority_only: bool = False,
+    draft_shared_only: bool = False,
+    assemble_rev2: bool = False,
+    rev2_sections_output: str | Path | None = None,
+    rev2_draft_output: str | Path | None = None,
 ):
     import pandas as pd
 
@@ -229,5 +241,25 @@ def run_pipeline(
     for point in briefing_points:
         briefing_lines.append(f"- {point}")
     _write_markdown(briefing_file, briefing_lines)
+
+    if draft_rev2 or assemble_rev2:
+        rev2_sections_path = Path(rev2_sections_output) if rev2_sections_output else base.with_name(base.stem + "_rev2_sections.json")
+        rev2_draft_path = Path(rev2_draft_output) if rev2_draft_output else base.with_name(base.stem + "_rev2_draft.md")
+        rewrites = build_section_rewrites(
+            analyzed,
+            decision_lookup=decision_lookup,
+            shared_resolutions=shared_resolutions,
+            draft_mode=draft_mode,
+            draft_sections=draft_sections,
+            high_priority_only=draft_high_priority_only,
+            require_shared_fix=draft_shared_only,
+            heat_levels=heat_levels,
+            pdf_context=pdf_context,
+        )
+        validated_rewrites = [validate_section_rewrite(r) for r in rewrites]
+        _write_json(rev2_sections_path, [asdict(r) for r in validated_rewrites])
+        if assemble_rev2:
+            assembled_lines = assemble_rev2_draft(validated_rewrites)
+            _write_markdown(rev2_draft_path, assembled_lines)
 
     return output_df

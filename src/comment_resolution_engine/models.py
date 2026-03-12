@@ -115,3 +115,22 @@ class SectionIssueBrief:
     total_comments: int
     themes: List[str]
     revision_strategy: List[str]
+
+
+@dataclass(slots=True)
+class SectionRewrite:
+    section_id: str
+    section_title: str
+    draft_mode: str
+    source_comment_ids: List[str]
+    source_cluster_ids: List[str]
+    source_master_resolution_ids: List[str]
+    revision_themes: List[str]
+    original_text: str
+    revised_text: str
+    revision_rationale: str
+    open_issues: List[str] = field(default_factory=list)
+    confidence: str = "MEDIUM"
+    canonical_terms_used: List[str] = field(default_factory=list)
+    context_confidence_summary: str = ""
+    validation_codes: List[str] = field(default_factory=list)

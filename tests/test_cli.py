@@ -20,6 +20,18 @@ def test_cli_parser_accepts_expected_args():
         "summary.md",
         "--briefing-output",
         "briefing.md",
+        "--draft-rev2",
+        "--draft-mode",
+        "EXECUTIVE_PLAIN_LANGUAGE",
+        "--draft-sections",
+        "3.1,4.2",
+        "--draft-high-priority-only",
+        "--draft-shared-only",
+        "--assemble-rev2",
+        "--rev2-sections-output",
+        "rev2.json",
+        "--rev2-draft-output",
+        "rev2.md",
     ])
     assert args.comments == "in.xlsx"
     assert args.report == "report.pdf"
@@ -29,3 +41,11 @@ def test_cli_parser_accepts_expected_args():
     assert args.faq_output == "faq.md"
     assert args.summary_output == "summary.md"
     assert args.briefing_output == "briefing.md"
+    assert args.draft_rev2 is True
+    assert args.draft_mode == "EXECUTIVE_PLAIN_LANGUAGE"
+    assert args.draft_sections == "3.1,4.2"
+    assert args.draft_high_priority_only is True
+    assert args.draft_shared_only is True
+    assert args.assemble_rev2 is True
+    assert args.rev2_sections_output == "rev2.json"
+    assert args.rev2_draft_output == "rev2.md"
