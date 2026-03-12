@@ -3,3 +3,4 @@ openpyxl>=3.1
 PyYAML>=6.0
 pypdf>=4.0
 pytest>=8.0
+scikit-learn>=1.4

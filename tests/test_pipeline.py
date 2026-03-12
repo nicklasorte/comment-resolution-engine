@@ -21,10 +21,21 @@ def test_pipeline_outputs_disposition_and_resolution(tmp_path: Path):
     df.to_excel(comments, index=False)
 
     output_path = tmp_path / "out.xlsx"
-    out_df = run_pipeline(comments_path=comments, report_path=None, output_path=output_path, config_path=None)
+    out_df = run_pipeline(
+        comments_path=comments,
+        report_path=None,
+        output_path=output_path,
+        config_path=None,
+    )
 
     assert "NTIA Comments" in out_df.columns
     assert "Comment Disposition" in out_df.columns
     assert "Resolution" in out_df.columns
+    assert "Comment Cluster Id" in out_df.columns
+    assert "Validation Status" in out_df.columns
     assert out_df.iloc[0]["Comment Disposition"] in {"Accept", "Reject"}
     assert out_df.iloc[0]["Resolution"] != ""
+    assert (tmp_path / "out_patches.json").exists()
+    assert (tmp_path / "out_faq.md").exists()
+    assert (tmp_path / "out_section_summary.md").exists()
+    assert (tmp_path / "out_briefing.md").exists()
