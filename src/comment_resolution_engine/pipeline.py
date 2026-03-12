@@ -245,6 +245,7 @@ def run_pipeline(
     if draft_rev2 or assemble_rev2:
         rev2_sections_path = Path(rev2_sections_output) if rev2_sections_output else base.with_name(base.stem + "_rev2_sections.json")
         rev2_draft_path = Path(rev2_draft_output) if rev2_draft_output else base.with_name(base.stem + "_rev2_draft.md")
+        rev2_appendix_path = base.with_name(base.stem + "_rev2_appendix.md")
         rewrites = build_section_rewrites(
             analyzed,
             decision_lookup=decision_lookup,
@@ -259,7 +260,8 @@ def run_pipeline(
         validated_rewrites = [validate_section_rewrite(r) for r in rewrites]
         _write_json(rev2_sections_path, [asdict(r) for r in validated_rewrites])
         if assemble_rev2:
-            assembled_lines = assemble_rev2_draft(validated_rewrites)
-            _write_markdown(rev2_draft_path, assembled_lines)
+            draft_lines, appendix_lines = assemble_rev2_draft(validated_rewrites)
+            _write_markdown(rev2_draft_path, draft_lines)
+            _write_markdown(rev2_appendix_path, appendix_lines)
 
     return output_df
