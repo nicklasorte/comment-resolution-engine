@@ -12,6 +12,7 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 - Produces proposed report patch records, shared (multi-comment) resolutions, FAQ entries, section briefs, and briefing bullets.
 - Validates each row with rules tied to disposition and comment type, surfacing `validation_status` and `validation_notes`.
 - Keeps the original sheet shape when practical and formats the output with frozen headers, filters, and wrapped text columns.
+- Builds Rev-2 section-level rewrites and an optional assembled draft narrative using accepted fixes, shared resolutions, and clustered themes (without recreating figures or tables).
 
 ## Current Workflow
 **Stage 1 – Ingest**
@@ -57,6 +58,8 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 3. FAQ / issue log (`<output>_faq.md`).
 4. Section summary memo (`<output>_section_summary.md`).
 5. Working group briefing bullets (`<output>_briefing.md`).
+6. Section-level Rev-2 rewrite records (`<output>_rev2_sections.json`) when `--draft-rev2` is enabled.
+7. Optional assembled Rev-2 narrative (`<output>_rev2_draft.md`) when `--assemble-rev2` is enabled.
 
 ## Usage
 
@@ -69,7 +72,12 @@ python -m comment_resolution_engine.cli \
   --patch-output outputs/report_patches.json \
   --faq-output outputs/faq.md \
   --summary-output outputs/section_summary.md \
-  --briefing-output outputs/briefing.md
+  --briefing-output outputs/briefing.md \
+  --draft-rev2 \
+  --draft-mode CLEAN_REWRITE \
+  --draft-sections 3.2,4.1,5.2 \
+  --draft-high-priority-only \
+  --assemble-rev2
 ```
 
 If `--report` is omitted, the pipeline still runs without PDF context and produces the analysis/generation artifacts.
