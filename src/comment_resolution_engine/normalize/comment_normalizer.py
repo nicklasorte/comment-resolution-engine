@@ -45,7 +45,7 @@ def normalize_comments(records: Iterable[CommentRecord], pdf_context: PdfContext
         ntype = normalize_type(record.comment_type) or normalize_type(record.agency_notes) or normalize_type(record.agency_suggested_text)
         effective_comment = derive_effective_comment(record.agency_notes, record.agency_suggested_text)
         effective_suggested_text = derive_effective_suggested_text(record.agency_suggested_text)
-        context = pdf_context.extract_window(record.page, record.line, window=5) if pdf_context else ""
+        context, context_confidence = pdf_context.extract_window(record.page, record.line, window=5) if pdf_context else ("", "NO_CONTEXT_FOUND")
 
         normalized.append(
             NormalizedComment(
@@ -54,6 +54,7 @@ def normalize_comments(records: Iterable[CommentRecord], pdf_context: PdfContext
                 effective_comment=effective_comment,
                 effective_suggested_text=effective_suggested_text,
                 report_context=context,
+                context_confidence=context_confidence,
             )
         )
     return normalized

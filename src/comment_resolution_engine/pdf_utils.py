@@ -23,10 +23,10 @@ def extract_pdf_text(pdf_path: str | Path, max_pages: int = 20) -> str:
         return ""
 
 
-def extract_report_context(line_reference: str, pdf_text: str, window: int = 5) -> str:
+def extract_report_context(line_reference: str, pdf_text: str, window: int = 5) -> tuple[str, str]:
     targets = parse_line_reference(line_reference)
     if not targets or not pdf_text:
-        return ""
+        return "", "NO_CONTEXT_FOUND"
 
     lines = [ln for ln in (pdf_text or "").splitlines() if ln.strip()]
     indexed: dict[int, str] = {}
@@ -35,18 +35,26 @@ def extract_report_context(line_reference: str, pdf_text: str, window: int = 5) 
         if match:
             indexed[int(match.group(1))] = match.group(2).strip()
 
-    if not indexed:
-        return ""
+    if indexed:
+        snippets: list[str] = []
+        for target in targets:
+            for ln in range(max(1, target - window), target + window + 1):
+                text = indexed.get(ln)
+                if text:
+                    snippets.append(f"L{ln}: {text}")
+        if snippets:
+            deduped = list(dict.fromkeys(snippets))
+            return " | ".join(deduped), "EXACT_LINE_MATCH"
 
-    snippets: list[str] = []
-    for target in targets:
-        for ln in range(max(1, target - window), target + window + 1):
-            text = indexed.get(ln)
-            if text:
-                snippets.append(f"L{ln}: {text}")
+    approximate: list[str] = []
+    if lines:
+        for target in targets:
+            idx = max(0, min(len(lines) - 1, target - 1))
+            start = max(0, idx - window)
+            end = min(len(lines), idx + window + 1)
+            approximate.extend([f"~L{start + i + 1}: {lines[start + i]}" for i in range(end - start)])
+        if approximate:
+            deduped = list(dict.fromkeys(approximate))
+            return " | ".join(deduped), "PAGE_APPROXIMATION"
 
-    if not snippets:
-        return ""
-
-    deduped = list(dict.fromkeys(snippets))
-    return " | ".join(deduped)
+    return "", "NO_CONTEXT_FOUND"

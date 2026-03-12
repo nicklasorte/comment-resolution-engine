@@ -19,7 +19,8 @@ def test_extract_report_context_window():
             ]
         }
     )
-    context = ctx.extract_window(page=1, line_reference="12", window=2)
+    context, confidence = ctx.extract_window(page=1, line_reference="12", window=2)
     assert "L11: System assumptions are defined here" in context
     assert "L12: Compatibility metric is introduced" in context
     assert "L13: Additional model detail" in context
+    assert confidence == "EXACT_LINE_MATCH"

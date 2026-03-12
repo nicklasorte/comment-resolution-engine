@@ -34,6 +34,16 @@ CANONICAL_COLUMNS = [
     "heat_level",
     "validation_status",
     "validation_notes",
+    "validation_code",
+    "patch_text",
+    "patch_source",
+    "patch_confidence",
+    "resolution_basis",
+    "context_confidence",
+    "cluster_label",
+    "cluster_size",
+    "shared_resolution_id",
+    "canonical_term_used",
 ]
 
 
@@ -112,12 +122,22 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "Comment Disposition": 18,
         "Resolution": 70,
         "Validation Status": 20,
+        "Validation Code": 22,
         "Validation Notes": 70,
         "Comment Cluster Id": 22,
+        "Cluster Label": 30,
+        "Cluster Size": 18,
         "Intent Classification": 26,
         "Section Group": 18,
         "Heat Level": 16,
         "Report Context": 70,
+        "Context Confidence": 22,
+        "Patch Text": 70,
+        "Patch Source": 20,
+        "Patch Confidence": 18,
+        "Resolution Basis": 28,
+        "Shared Resolution Id": 22,
+        "Canonical Term Used": 24,
         "Resolution Task": 70,
     }
 
@@ -128,8 +148,12 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "NTIA Comments",
         "Resolution",
         "Report Context",
+        "Patch Text",
+        "Patch Source",
+        "Resolution Basis",
         "Resolution Task",
         "Validation Notes",
+        "Validation Code",
     }
 
     for idx, col_name in enumerate(ordered.columns, start=1):

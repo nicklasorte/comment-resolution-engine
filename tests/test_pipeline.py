@@ -32,9 +32,16 @@ def test_pipeline_outputs_disposition_and_resolution(tmp_path: Path):
     assert "Comment Disposition" in out_df.columns
     assert "Resolution" in out_df.columns
     assert "Comment Cluster Id" in out_df.columns
+    assert "Patch Text" in out_df.columns
+    assert "Patch Source" in out_df.columns
+    assert "Context Confidence" in out_df.columns
+    assert "Resolution Basis" in out_df.columns
+    assert "Validation Code" in out_df.columns
+    assert "Shared Resolution Id" in out_df.columns
     assert "Validation Status" in out_df.columns
-    assert out_df.iloc[0]["Comment Disposition"] in {"Accept", "Reject"}
+    assert out_df.iloc[0]["Comment Disposition"] in {"Accept", "Reject", "Partial Accept"}
     assert out_df.iloc[0]["Resolution"] != ""
+    assert out_df.iloc[0]["Patch Text"] != ""
     assert (tmp_path / "out_patches.json").exists()
     assert (tmp_path / "out_faq.md").exists()
     assert (tmp_path / "out_section_summary.md").exists()

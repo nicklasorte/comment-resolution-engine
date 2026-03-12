@@ -33,8 +33,10 @@ def test_assign_clusters_groups_similar_comments():
         _comment("3", "Add reference to appendix"),
     ]
     clusters = assign_clusters(comments, similarity_threshold=0.4)
-    assert clusters[0] == clusters[1]
-    assert clusters[2] != clusters[0]
+    assert clusters.assignments[0] == clusters.assignments[1]
+    assert clusters.assignments[2] != clusters.assignments[0]
+    assert clusters.clusters[clusters.assignments[0]].cluster_size == 2
+    assert clusters.clusters[clusters.assignments[0]].cluster_label
 
 
 def test_intent_classifier_defaults_to_type():

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Iterable, List, Tuple
+from collections import Counter, defaultdict
+from typing import Iterable, List
 
 from ..models import AnalyzedComment, SectionIssueBrief
 
@@ -23,13 +23,20 @@ def build_section_briefs(comments: Iterable[AnalyzedComment]) -> List[SectionIss
 
     briefs: List[SectionIssueBrief] = []
     for section, bucket in grouped.items():
-        themes = sorted({(_theme_from_comment(c)) for c in bucket})
-        revision_strategy = [
-            "Add short purpose paragraph for the section.",
-            "Clarify terminology and assumptions raised in comments.",
-            "Ensure examples align with analytical intent rather than policy.",
-        ]
-        briefs.append(SectionIssueBrief(section=section, total_comments=len(bucket), themes=themes, revision_strategy=revision_strategy))
+        intent_themes = [_theme_from_comment(c) for c in bucket]
+        cluster_themes = [c.cluster_label for c in bucket if c.cluster_label]
+        top_phrases = [phrase for phrase, _ in Counter(cluster_themes).most_common(3) if phrase]
+        combined_themes = sorted({*intent_themes, *top_phrases})
+        revision_strategy: list[str] = []
+        if any(c.intent_classification == "TECHNICAL_CHALLENGE" for c in bucket):
+            revision_strategy.append("Add purpose paragraph explaining analytical intent vs. regulatory effect.")
+            revision_strategy.append("Clarify assumptions and tolerance values referenced in comments.")
+        if any(c.normalized_type == "EDITORIAL" for c in bucket):
+            revision_strategy.append("Apply terminology cleanup to maintain consistent vocabulary.")
+        if not revision_strategy:
+            revision_strategy.append("Summarize and respond to clarification requests in plain language.")
+
+        briefs.append(SectionIssueBrief(section=section, total_comments=len(bucket), themes=combined_themes, revision_strategy=revision_strategy))
     return briefs
 
 

@@ -80,9 +80,14 @@ def run_pipeline(
     normalized = normalize_comments(records, pdf_context)
     analyzed = _hydrate_analyzed_comments(normalized)
 
-    cluster_ids = assign_clusters(analyzed)
+    cluster_output = assign_clusters(analyzed)
+    cluster_ids = cluster_output.assignments
     for comment, cluster_id in zip(analyzed, cluster_ids):
         comment.cluster_id = cluster_id
+        cluster_info = cluster_output.clusters.get(cluster_id)
+        if cluster_info:
+            comment.cluster_label = cluster_info.cluster_label
+            comment.cluster_size = cluster_info.cluster_size
 
     section_groups = group_by_section(analyzed)
     heat_levels = heat_map(section_groups)
@@ -95,14 +100,31 @@ def run_pipeline(
         comment.heat_level = level
 
     decisions = [build_resolution_decision(comment) for comment in analyzed]
-    decisions = [validate_resolution(c, d) for c, d in zip(analyzed, decisions)]
+    decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
 
-    disposition_lookup = {comment.id: decision.disposition for comment, decision in zip(analyzed, decisions)}
-    resolution_lookup = {comment.id: decision.resolution_text for comment, decision in zip(analyzed, decisions)}
+    shared_resolutions = build_shared_resolutions(analyzed, decision_lookup)
+    shared_lookup = {}
+    for sr in shared_resolutions:
+        for cid in sr.linked_comment_ids:
+            shared_lookup[cid] = sr.master_resolution_id
 
-    patches = build_patch_records(analyzed, disposition_lookup, resolution_lookup)
-    shared_resolutions = build_shared_resolutions(analyzed, disposition_lookup)
-    faq_entries = generate_faq(analyzed)
+    for comment in analyzed:
+        if comment.id in shared_lookup:
+            comment.shared_resolution_id = shared_lookup[comment.id]
+
+    decisions = [validate_resolution(c, decision_lookup[c.id]) for c in analyzed]
+    decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
+    for comment in analyzed:
+        decision = decision_lookup.get(comment.id)
+        if decision:
+            comment.patch_text = decision.patch_text
+            comment.patch_source = decision.patch_source
+            comment.patch_confidence = decision.patch_confidence
+            comment.resolution_basis = decision.resolution_basis
+            comment.canonical_term_used = decision.canonical_term_used
+
+    patches = build_patch_records(analyzed, decision_lookup)
+    faq_entries = generate_faq(analyzed, decision_lookup)
     briefs = build_section_briefs(analyzed)
     briefing_points = top_briefing_points(briefs)
 
@@ -123,14 +145,24 @@ def run_pipeline(
     _set_column(output_df, mapping, "ntia_comments", [d.ntia_comment for d in decisions], always_override=True)
     _set_column(output_df, mapping, "disposition", [d.disposition for d in decisions], always_override=True)
     _set_column(output_df, mapping, "resolution", [d.resolution_text for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "patch_text", [d.patch_text for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "patch_source", [d.patch_source for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "patch_confidence", [d.patch_confidence for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "resolution_basis", [d.resolution_basis for d in decisions], always_override=True)
     _set_column(output_df, mapping, "report_context", [c.report_context for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
     _set_column(output_df, mapping, "comment_cluster_id", [c.cluster_id for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "cluster_label", [c.cluster_label for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "cluster_size", [str(c.cluster_size) for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "intent_classification", [c.intent_classification for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "section_group", [c.section_group for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "heat_level", [c.heat_level for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "validation_status", [d.validation_status for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "validation_code", [d.validation_code for d in decisions], always_override=True)
     _set_column(output_df, mapping, "validation_notes", [d.validation_notes for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "shared_resolution_id", [c.shared_resolution_id for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "canonical_term_used", [d.canonical_term_used for d in decisions], always_override=True)
 
     write_resolution_workbook(output_df, output_path)
 
@@ -151,6 +183,9 @@ def run_pipeline(
                 "old_text": p.old_text,
                 "new_text": p.new_text,
                 "rationale": p.rationale,
+                "patch_source": p.patch_source,
+                "confidence": p.confidence,
+                "shared_resolution_id": p.shared_resolution_id,
             }
             for p in patches
         ],
@@ -163,6 +198,7 @@ def run_pipeline(
                 "master_resolution_id": sr.master_resolution_id,
                 "linked_comment_ids": sr.linked_comment_ids,
                 "shared_fix_text": sr.shared_fix_text,
+                "target_section": sr.target_section,
             }
             for sr in shared_resolutions
         ],
@@ -170,10 +206,11 @@ def run_pipeline(
 
     faq_lines = ["# FAQ / Issue Log"]
     for entry in faq_entries:
-        faq_lines.append(f"## {entry.faq_id} — {entry.question}")
-        faq_lines.append(entry.answer)
-        if entry.related_comments:
-            faq_lines.append(f"Related comments: {', '.join(entry.related_comments)}")
+        faq_lines.append(f"## {entry.faq_id}")
+        faq_lines.append(f"**Question:** {entry.normalized_question}")
+        faq_lines.append(f"**Answer:** {entry.canonical_answer}")
+        if entry.related_comment_ids:
+            faq_lines.append(f"Related comments: {', '.join(entry.related_comment_ids)}")
         if entry.affected_sections:
             faq_lines.append(f"Affected sections: {', '.join(entry.affected_sections)}")
     _write_markdown(faq_file, faq_lines)

@@ -32,6 +32,7 @@ class NormalizedComment(CommentRecord):
     effective_comment: str = ""
     effective_suggested_text: str = ""
     report_context: str = ""
+    context_confidence: str = ""
 
 
 @dataclass(slots=True)
@@ -39,10 +40,27 @@ class AnalyzedComment(NormalizedComment):
     """Record enriched with analysis stage artifacts."""
 
     cluster_id: str = ""
+    cluster_label: str = ""
+    cluster_size: int = 0
     section_group: str = ""
     intent_classification: str = ""
     heat_level: str = ""
     heat_count: int = 0
+    resolution_basis: str = ""
+    patch_source: str = ""
+    patch_text: str = ""
+    patch_confidence: str = ""
+    shared_resolution_id: str = ""
+    canonical_term_used: str = ""
+
+
+@dataclass(slots=True)
+class ClusterInfo:
+    cluster_id: str
+    cluster_label: str
+    cluster_size: int
+    representative_comment_id: str
+    sections: List[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -50,8 +68,14 @@ class ResolutionDecision:
     disposition: str
     ntia_comment: str
     resolution_text: str
+    patch_text: str
+    patch_source: str
+    patch_confidence: str
+    resolution_basis: str
+    validation_code: str = ""
     validation_status: str = ""
     validation_notes: str = ""
+    canonical_term_used: str = ""
 
 
 @dataclass(slots=True)
@@ -63,6 +87,9 @@ class PatchRecord:
     old_text: str
     new_text: str
     rationale: str
+    patch_source: str
+    confidence: str
+    shared_resolution_id: str = ""
 
 
 @dataclass(slots=True)
@@ -70,14 +97,15 @@ class SharedResolution:
     master_resolution_id: str
     linked_comment_ids: List[str]
     shared_fix_text: str
+    target_section: str
 
 
 @dataclass(slots=True)
 class FAQEntry:
     faq_id: str
-    question: str
-    answer: str
-    related_comments: List[str] = field(default_factory=list)
+    normalized_question: str
+    canonical_answer: str
+    related_comment_ids: List[str] = field(default_factory=list)
     affected_sections: List[str] = field(default_factory=list)
 
 
