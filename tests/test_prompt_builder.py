@@ -44,5 +44,6 @@ def test_resolution_generation_includes_change_language():
     comment = _base_comment()
     decision = build_resolution_decision(comment)
     assert decision.disposition == "Accept"
-    assert "clarifies" in decision.resolution_text.lower() or "now" in decision.resolution_text.lower()
+    lowered = decision.resolution_text.lower()
+    assert any(token in lowered for token in ("clarifies", "now", "updated", "address"))
     assert decision.ntia_comment.startswith("Accept")

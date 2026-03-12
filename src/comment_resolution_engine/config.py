@@ -39,6 +39,16 @@ DEFAULT_SYNONYMS: Dict[str, list[str]] = {
     "status": ["status", "state", "resolution status", "row status"],
     "report_context": ["report context", "context", "pdf context"],
     "resolution_task": ["resolution task", "task", "llm task"],
+    "patch_text": ["patch text", "report patch", "edit text"],
+    "patch_source": ["patch source", "patch origin"],
+    "patch_confidence": ["patch confidence", "patch certainty"],
+    "resolution_basis": ["resolution basis", "basis"],
+    "validation_code": ["validation code", "validation issue"],
+    "context_confidence": ["context confidence", "context quality"],
+    "cluster_label": ["cluster label", "cluster theme"],
+    "cluster_size": ["cluster size", "cluster count"],
+    "shared_resolution_id": ["shared resolution id", "master resolution id"],
+    "canonical_term_used": ["canonical term", "canonical term used"],
 }
 
 
@@ -87,6 +97,16 @@ DEFAULT_MAPPING = ColumnMappingConfig(
         "heat_level": "Heat Level",
         "validation_status": "Validation Status",
         "validation_notes": "Validation Notes",
+        "validation_code": "Validation Code",
+        "patch_text": "Patch Text",
+        "patch_source": "Patch Source",
+        "patch_confidence": "Patch Confidence",
+        "resolution_basis": "Resolution Basis",
+        "context_confidence": "Context Confidence",
+        "cluster_label": "Cluster Label",
+        "cluster_size": "Cluster Size",
+        "shared_resolution_id": "Shared Resolution Id",
+        "canonical_term_used": "Canonical Term Used",
     },
     synonyms=DEFAULT_SYNONYMS,
 )
