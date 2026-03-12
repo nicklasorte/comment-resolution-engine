@@ -134,3 +134,8 @@ class SectionRewrite:
     canonical_terms_used: List[str] = field(default_factory=list)
     context_confidence_summary: str = ""
     validation_codes: List[str] = field(default_factory=list)
+    shared_fix_count: int = 0
+    source_patch_ids: List[str] = field(default_factory=list)
+    source_patch_count: int = 0
+    grounded_from_original_text: bool = False
+    grounding_quality: str = "NONE"

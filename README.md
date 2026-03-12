@@ -60,6 +60,7 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 5. Working group briefing bullets (`<output>_briefing.md`).
 6. Section-level Rev-2 rewrite records (`<output>_rev2_sections.json`) when `--draft-rev2` is enabled.
 7. Optional assembled Rev-2 narrative (`<output>_rev2_draft.md`) when `--assemble-rev2` is enabled.
+8. Rev-2 revision appendix with rationale and traceability (`<output>_rev2_appendix.md`) produced when `--assemble-rev2` is enabled.
 
 ## Usage
 
