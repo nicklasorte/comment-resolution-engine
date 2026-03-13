@@ -43,6 +43,10 @@ def build_patch_records(comments: Iterable[AnalyzedComment], decision_lookup: di
                 patch_source=decision.patch_source,
                 confidence=decision.patch_confidence,
                 shared_resolution_id=comment.shared_resolution_id or "",
+                source_revision=comment.revision,
+                resolved_against_revision=comment.resolved_against_revision or comment.revision,
+                provenance_record_id=comment.provenance_record_id or "",
+                provenance=comment.provenance or {},
             )
         )
     return patches

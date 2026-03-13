@@ -34,6 +34,12 @@ def test_cli_parser_accepts_expected_args():
         "rev2.json",
         "--rev2-draft-output",
         "rev2.md",
+        "--rules-path",
+        "rules.yaml",
+        "--rules-profile",
+        "baseline",
+        "--rules-version",
+        "v1.2.3",
     ])
     assert args.comments == "in.xlsx"
     assert args.report == ["report_rev1.pdf", "report_rev2.pdf"]
@@ -51,3 +57,6 @@ def test_cli_parser_accepts_expected_args():
     assert args.assemble_rev2 is True
     assert args.rev2_sections_output == "rev2.json"
     assert args.rev2_draft_output == "rev2.md"
+    assert args.rules_path == "rules.yaml"
+    assert args.rules_profile == "baseline"
+    assert args.rules_version == "v1.2.3"
