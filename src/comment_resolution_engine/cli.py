@@ -6,9 +6,14 @@ from .pipeline import run_pipeline
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build an NTIA comment-resolution workbook (NTIA Comments, Comment Disposition, Resolution) from a comment matrix and optional report PDF.")
+    parser = argparse.ArgumentParser(description="Build an NTIA comment-resolution workbook (NTIA Comments, Comment Disposition, Resolution) from a comment matrix and working paper PDF revisions.")
     parser.add_argument("--comments", required=True, help="Path to input Excel comment matrix.")
-    parser.add_argument("--report", required=False, help="Path to report PDF with line numbers.")
+    parser.add_argument(
+        "--report",
+        required=True,
+        action="append",
+        help="Path to working paper PDF (rev1). Provide additional --report arguments for later revisions in order.",
+    )
     parser.add_argument("--output", required=True, help="Path for generated output workbook.")
     parser.add_argument("--config", required=False, help="Path to YAML column mapping config.")
     parser.add_argument("--patch-output", required=False, help="Optional path for generated report patch JSON.")

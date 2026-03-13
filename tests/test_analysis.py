@@ -8,6 +8,7 @@ def _comment(cid: str, text: str, ctype: str = "TECHNICAL"):
         id=cid,
         reviewer_initials="AB",
         agency="Agency",
+        revision="rev1",
         report_version="Draft",
         section="1.0",
         page=1,

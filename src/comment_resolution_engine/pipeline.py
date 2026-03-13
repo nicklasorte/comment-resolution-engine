@@ -19,7 +19,7 @@ from .generation import (
     generate_faq,
     top_briefing_points,
 )
-from .ingest import load_pdf_context, read_comment_matrix
+from .ingest import load_pdf_contexts, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
 from .validation import validate_resolution
@@ -67,7 +67,7 @@ def _write_markdown(path: Path, lines: Iterable[str]) -> None:
 
 def run_pipeline(
     comments_path: str | Path,
-    report_path: str | Path | None,
+    report_path: str | Path | list[str | Path] | None,
     output_path: str | Path,
     config_path: str | Path | None = None,
     patch_output: str | Path | None = None,
@@ -87,9 +87,21 @@ def run_pipeline(
 
     mapping = load_column_mapping(config_path)
     records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
-    pdf_context = load_pdf_context(report_path)
+    pdf_contexts = load_pdf_contexts(report_path)
+    default_revision = next(iter(pdf_contexts))
 
-    normalized = normalize_comments(records, pdf_context)
+    for record in records:
+        revision = (record.revision or "").strip().lower()
+        if not revision:
+            if len(pdf_contexts) == 1:
+                revision = default_revision
+            else:
+                raise RuntimeError("ERROR: Comments spreadsheet must contain a 'Revision' value for each comment when multiple working paper revisions are uploaded.")
+        if revision not in pdf_contexts:
+            raise RuntimeError(f"ERROR: Comment references revision '{revision}' but no corresponding PDF was uploaded.")
+        record.revision = revision
+
+    normalized = normalize_comments(records, pdf_contexts)
     analyzed = _hydrate_analyzed_comments(normalized)
 
     cluster_output = assign_clusters(analyzed)
@@ -145,6 +157,7 @@ def run_pipeline(
     _set_column(output_df, mapping, "comment_number", [c.id for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "reviewer_initials", [c.reviewer_initials for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "agency", [c.agency for c in analyzed], always_override=False)
+    _set_column(output_df, mapping, "revision", [c.revision for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "report_version", [c.report_version for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "section", [c.section for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "page", [c.page for c in analyzed], always_override=False)
@@ -242,6 +255,8 @@ def run_pipeline(
         briefing_lines.append(f"- {point}")
     _write_markdown(briefing_file, briefing_lines)
 
+    primary_pdf_context = pdf_contexts.get(default_revision)
+
     if draft_rev2 or assemble_rev2:
         rev2_sections_path = Path(rev2_sections_output) if rev2_sections_output else base.with_name(base.stem + "_rev2_sections.json")
         rev2_draft_path = Path(rev2_draft_output) if rev2_draft_output else base.with_name(base.stem + "_rev2_draft.md")
@@ -255,7 +270,7 @@ def run_pipeline(
             high_priority_only=draft_high_priority_only,
             require_shared_fix=draft_shared_only,
             heat_levels=heat_levels,
-            pdf_context=pdf_context,
+            pdf_context=primary_pdf_context,
         )
         validated_rewrites = [validate_section_rewrite(r) for r in rewrites]
         _write_json(rev2_sections_path, [asdict(r) for r in validated_rewrites])

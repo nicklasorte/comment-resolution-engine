@@ -11,6 +11,7 @@ CANONICAL_COLUMNS = [
     "comment_number",
     "reviewer_initials",
     "agency",
+    "revision",
     "report_version",
     "section",
     "page",
@@ -59,8 +60,16 @@ def _extract_value(row, lookup: dict[str, str], mapping: ColumnMappingConfig, ca
 
 def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[CommentRecord], "pd.DataFrame", "pd.DataFrame"]:
     pd = _require_pandas()
-    df = pd.read_excel(path)
+    path_str = str(path)
+    if path_str.lower().endswith(".csv"):
+        df = pd.read_csv(path_str)
+    else:
+        df = pd.read_excel(path_str)
     lookup = _build_header_lookup(df.columns.tolist())
+
+    has_revision = any(variant in lookup for variant in mapping.all_variants("revision"))
+    if not has_revision:
+        raise RuntimeError("ERROR: Comments spreadsheet must contain a 'Revision' column indicating which working paper revision the comment references.")
 
     records: List[CommentRecord] = []
     for idx, row in df.iterrows():
@@ -71,6 +80,7 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
                 id=str(data.get("comment_number") or idx + 1),
                 reviewer_initials=str(data.get("reviewer_initials") or "").strip(),
                 agency=str(data.get("agency") or "").strip(),
+                revision=str(data.get("revision") or "").strip(),
                 report_version=str(data.get("report_version") or "").strip(),
                 section=str(data.get("section") or "").strip(),
                 page=_to_int(data.get("page")),

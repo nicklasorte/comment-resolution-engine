@@ -7,7 +7,9 @@ def test_cli_parser_accepts_expected_args():
         "--comments",
         "in.xlsx",
         "--report",
-        "report.pdf",
+        "report_rev1.pdf",
+        "--report",
+        "report_rev2.pdf",
         "--output",
         "out.xlsx",
         "--config",
@@ -34,7 +36,7 @@ def test_cli_parser_accepts_expected_args():
         "rev2.md",
     ])
     assert args.comments == "in.xlsx"
-    assert args.report == "report.pdf"
+    assert args.report == ["report_rev1.pdf", "report_rev2.pdf"]
     assert args.output == "out.xlsx"
     assert args.config == "map.yaml"
     assert args.patch_output == "patch.json"

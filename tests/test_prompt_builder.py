@@ -8,6 +8,7 @@ def _base_comment(**kwargs):
         id="1",
         reviewer_initials="AB",
         agency="Agency",
+        revision="rev1",
         report_version="Draft",
         section="1.1",
         page=1,

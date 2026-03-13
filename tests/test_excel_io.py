@@ -16,6 +16,7 @@ def test_write_resolution_workbook_formats_sheet(tmp_path: Path):
             "Comment Number": ["1"],
             "Reviewer Initials": ["AB"],
             "Agency": ["Agency X"],
+            "Revision": ["rev1"],
             "Report Version": ["Draft"],
             "Section": ["2.1"],
             "Page": ["10"],

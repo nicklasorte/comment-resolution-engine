@@ -28,6 +28,7 @@ def test_realistic_integration_pipeline(tmp_path: Path):
             ],
             "Section": ["4.3", "4.4", "5.2", "2.1"],
             "Line": ["12", "13", "45", "8"],
+            "Revision": ["rev1", "rev1", "rev1", "rev1"],
         }
     )
     df.to_excel(comments_path, index=False)
