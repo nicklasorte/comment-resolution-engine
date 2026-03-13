@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Iterable, List
 
+from ..errors import CREError, ErrorCategory
+
 from ..config import ColumnMappingConfig, normalize_header
 from ..models import CommentRecord
 
@@ -30,7 +32,7 @@ def _require_pandas():
     try:
         import pandas as pd
     except ModuleNotFoundError as exc:
-        raise RuntimeError("pandas is required for Excel processing. Install dependencies with `pip install -r requirements.txt`.") from exc
+        raise CREError(ErrorCategory.EXTRACTION_ERROR, "pandas is required for Excel processing. Install dependencies with `pip install -r requirements.txt`.") from exc
     return pd
 
 
@@ -48,6 +50,11 @@ def _to_int(value) -> int | None:
         return int(float(text))
     except (TypeError, ValueError):
         return None
+
+
+def _clean_str(value) -> str:
+    text = "" if value is None else str(value).strip()
+    return "" if text.lower() in {"nan", "none"} else text
 
 
 def _extract_value(row, lookup: dict[str, str], mapping: ColumnMappingConfig, canonical_key: str) -> str:
@@ -69,7 +76,7 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
 
     has_revision = any(variant in lookup for variant in mapping.all_variants("revision"))
     if not has_revision:
-        raise RuntimeError("ERROR: Comments spreadsheet must contain a 'Revision' column indicating which working paper revision the comment references.")
+        raise CREError(ErrorCategory.SCHEMA_ERROR, "ERROR: Comments spreadsheet must contain a 'Revision' column indicating which working paper revision the comment references.")
 
     records: List[CommentRecord] = []
     for idx, row in df.iterrows():
@@ -78,19 +85,19 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
         records.append(
             CommentRecord(
                 id=str(data.get("comment_number") or idx + 1),
-                reviewer_initials=str(data.get("reviewer_initials") or "").strip(),
-                agency=str(data.get("agency") or "").strip(),
-                revision=str(data.get("revision") or "").strip(),
-                report_version=str(data.get("report_version") or "").strip(),
-                section=str(data.get("section") or "").strip(),
+                reviewer_initials=_clean_str(data.get("reviewer_initials")),
+                agency=_clean_str(data.get("agency")),
+                revision=_clean_str(data.get("revision")),
+                report_version=_clean_str(data.get("report_version")),
+                section=_clean_str(data.get("section")),
                 page=_to_int(data.get("page")),
                 line=_to_int(data.get("line")) or _to_int(data.get("line_number")),
-                comment_type=str(data.get("comment_type") or "").strip(),
-                agency_notes=str(data.get("agency_notes") or "").strip(),
-                agency_suggested_text=str(data.get("agency_suggested_text") or "").strip(),
-                wg_chain_comments=str(data.get("wg_chain_comments") or "").strip(),
-                comment_disposition=str(data.get("comment_disposition") or data.get("disposition") or "").strip(),
-                resolution=str(data.get("resolution") or "").strip(),
+                comment_type=_clean_str(data.get("comment_type")),
+                agency_notes=_clean_str(data.get("agency_notes")),
+                agency_suggested_text=_clean_str(data.get("agency_suggested_text")),
+                wg_chain_comments=_clean_str(data.get("wg_chain_comments")),
+                comment_disposition=_clean_str(data.get("comment_disposition") or data.get("disposition")),
+                resolution=_clean_str(data.get("resolution")),
                 raw_row=row.to_dict(),
             )
         )
