@@ -1,0 +1,11 @@
+- rule_id: CANONICAL_UNKNOWN
+  rule_type: canonical_term
+  priority: 1
+  enabled: true
+  unexpected_field: true
+  match:
+    field_equals:
+      revision: "rev1"
+  action:
+    canonical_term: "value"
+    extra_action: "oops"

@@ -5,18 +5,19 @@ import sys
 
 from .pipeline import run_pipeline
 from .errors import CREError
+from .rules import Strictness, load_rule_pack
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build an NTIA comment-resolution workbook (NTIA Comments, Comment Disposition, Resolution) from a comment matrix and working paper PDF revisions.")
-    parser.add_argument("--comments", required=True, help="Path to input Excel comment matrix.")
+    parser.add_argument("--comments", required=False, help="Path to input Excel comment matrix.")
     parser.add_argument(
         "--report",
-        required=True,
+        required=False,
         action="append",
         help="Path to working paper PDF (rev1). Provide additional --report arguments for later revisions in order.",
     )
-    parser.add_argument("--output", required=True, help="Path for generated output workbook.")
+    parser.add_argument("--output", required=False, help="Path for generated output workbook.")
     parser.add_argument("--config", required=False, help="Path to YAML column mapping config.")
     parser.add_argument("--patch-output", required=False, help="Optional path for generated report patch JSON.")
     parser.add_argument("--faq-output", required=False, help="Optional path for generated FAQ/issue log markdown.")
@@ -33,6 +34,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rules-path", required=False, help="Optional path to an external ruleset directory (e.g., ../spectrum-systems/rules/comment-resolution).")
     parser.add_argument("--rules-profile", required=False, help="Optional rules profile identifier (defaults to 'default' when available).")
     parser.add_argument("--rules-version", required=False, help="Optional rules version identifier to record in provenance.")
+    parser.add_argument("--rules-strict", action="store_true", help="Validate rules in strict mode (unknown keys become errors).")
+    parser.add_argument("--validate-rules", action="store_true", help="Validate a rules directory and exit.")
     return parser
 
 
@@ -40,6 +43,25 @@ def main() -> None:
     args = build_parser().parse_args()
     draft_sections = [part.strip() for part in (args.draft_sections.split(",") if args.draft_sections else []) if part.strip()]
     try:
+        if not args.validate_rules and (not args.comments or not args.report or not args.output):
+            print("ERROR: --comments, --report, and --output are required unless --validate-rules is used.")
+            sys.exit(1)
+        if args.validate_rules:
+            if not args.rules_path:
+                print("ERROR: --rules-path is required when using --validate-rules.")
+                sys.exit(1)
+            pack = load_rule_pack(args.rules_path, profile=args.rules_profile, requested_version=args.rules_version, strictness=Strictness.STRICT if args.rules_strict else Strictness.PERMISSIVE)
+            print(f"Rule validation succeeded for {args.rules_path} (profile={pack.rules_profile}, loaded={pack.loaded_count}).")
+            if pack.validation_warnings:
+                print("Warnings:")
+                for warning in pack.validation_warnings:
+                    file = warning.get("file", "")
+                    rid = warning.get("rule_id") or ""
+                    field = warning.get("field") or ""
+                    message = warning.get("message", "")
+                    category = warning.get("category", "WARNING")
+                    print(f"- [{category}] {file} {rid} {field} {message}".strip())
+            sys.exit(0)
         df = run_pipeline(
             comments_path=args.comments,
             report_path=args.report,
@@ -60,6 +82,7 @@ def main() -> None:
             rules_path=args.rules_path,
             rules_profile=args.rules_profile,
             rules_version=args.rules_version,
+            rules_strict=args.rules_strict,
         )
     except CREError as exc:
         print(f"ERROR {exc}")

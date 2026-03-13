@@ -54,6 +54,7 @@ class RulePack:
     drafting_rules: List[DraftingRule] = field(default_factory=list)
     validation_rules: List[ValidationRule] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    validation_warnings: List[dict] = field(default_factory=list)
 
     @property
     def loaded_count(self) -> int:
@@ -74,6 +75,7 @@ class RulePack:
             "rules_profile": self.rules_profile,
             "rules_version": self.rules_version or self.metadata.get("rules_version"),
             "rules_loaded_count": self.loaded_count,
+            "validation_warnings": list(self.validation_warnings),
         }
 
 
@@ -83,6 +85,14 @@ class RuleMatchResult:
     matched: bool
     context: Dict[str, Any] = field(default_factory=dict)
     applied_action: Dict[str, Any] = field(default_factory=dict)
+    match_basis: str = ""
+    precedence_rank: int = 0
+    applied: bool = True
+    skip_reason: str = ""
+    conflict_with: List[str] = field(default_factory=list)
+    generation_mode: str = ""
+    rules_profile: str = ""
+    rules_version: str = ""
 
     def as_metadata(self) -> Dict[str, Any]:
         return {
@@ -91,5 +101,12 @@ class RuleMatchResult:
             "rule_source": self.rule.source,
             "rule_version": self.rule.version,
             "applied_action": self.applied_action,
+            "match_basis": self.match_basis,
+            "precedence_rank": self.precedence_rank,
+            "applied": self.applied,
+            "skip_reason": self.skip_reason,
+            "conflict_with": list(self.conflict_with),
+            "generation_mode": self.generation_mode,
+            "rules_profile": self.rules_profile,
+            "rules_version": self.rules_version,
         }
-

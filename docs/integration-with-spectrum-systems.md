@@ -17,6 +17,7 @@ Current integration behavior:
 - Disposition rules inform disposition/notes/patch templates when matches are found.
 - Validation rules run before local validation, blocking runs when missing PDFs or revisions, and contributing rule provenance when applicable.
 - Drafting rules post-process generated resolution/NTIA text (e.g., revision lineage, review callouts) after validation.
+- Before running the pipeline, validate spectrum-systems rule edits with `python -m comment_resolution_engine.cli --validate-rules --rules-path ../spectrum-systems/rules/comment-resolution --rules-strict` to catch schema or enum regressions early.
 
 Fallback behavior:
 - When `--rules-path` is omitted, local deterministic heuristics remain in place for canonical matching, issue detection, disposition selection, drafting, and validation.

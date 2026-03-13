@@ -1,0 +1,6 @@
+- rule_type: canonical_term
+  priority: 5
+  enabled: true
+  match: {}
+  action:
+    canonical_term: "missing_id"

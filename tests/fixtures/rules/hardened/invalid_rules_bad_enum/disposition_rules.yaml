@@ -1,0 +1,9 @@
+- rule_id: DISP_UNKNOWN
+  rule_type: disposition
+  priority: 5
+  enabled: true
+  match:
+    field_equals:
+      normalized_type: "TECHNICAL"
+  action:
+    disposition: "Maybe"

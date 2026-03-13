@@ -1,0 +1,9 @@
+- rule_id: ISSUE_TEST
+  rule_type: issue_pattern
+  priority: 5
+  enabled: true
+  match:
+    text_contains: "test"
+  action:
+    issue_type: "test_issue"
+    disposition: "Accept"

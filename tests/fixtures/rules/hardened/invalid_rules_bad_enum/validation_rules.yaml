@@ -1,0 +1,12 @@
+- rule_id: VAL_BAD_CATEGORY
+  rule_type: validation
+  priority: 1
+  enabled: true
+  match:
+    boolean_true:
+      - missing_revision
+  action:
+    scope: run
+    blocking: true
+    error_category: NOT_A_REAL_CATEGORY
+    message: "Bad category"

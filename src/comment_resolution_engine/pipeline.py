@@ -25,7 +25,7 @@ from .ingest import load_pdf_contexts, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
 from .provenance import build_provenance_record
-from .rules import RuleEngine, load_rule_pack
+from .rules import RuleEngine, Strictness, load_rule_pack
 from .validation import validate_resolution
 from .validation.rev2_validator import validate_section_rewrite
 
@@ -150,11 +150,21 @@ def run_pipeline(
     rules_path: str | Path | None = None,
     rules_profile: str | None = None,
     rules_version: str | None = None,
+    rules_strict: bool = False,
 ):
     import pandas as pd
 
     mapping = load_column_mapping(config_path)
-    rule_pack = load_rule_pack(rules_path, profile=rules_profile, requested_version=rules_version) if rules_path else None
+    rule_pack = (
+        load_rule_pack(
+            rules_path,
+            profile=rules_profile,
+            requested_version=rules_version,
+            strictness=Strictness.STRICT if rules_strict else Strictness.PERMISSIVE,
+        )
+        if rules_path
+        else None
+    )
     rule_engine = RuleEngine(rule_pack)
     rules_metadata = rule_pack.to_metadata() if rule_pack else {
         "rules_path": str(rules_path) if rules_path else None,
@@ -226,10 +236,10 @@ def run_pipeline(
         comment.heat_count = count
         comment.heat_level = level
         if rule_engine.enabled:
-            issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+            issue_match, issue_matches = rule_engine.match_issue_pattern(comment, run_context=run_context)
             if issue_match:
                 comment.issue_pattern = issue_match.applied_action.get("issue_type", "")
-                summary = rule_engine.summarize_matches([issue_match])
+                summary = rule_engine.summarize_matches(issue_matches)
                 _apply_rule_metadata(comment, summary)
                 if summary.get("generation_mode"):
                     comment.generation_mode = summary["generation_mode"]

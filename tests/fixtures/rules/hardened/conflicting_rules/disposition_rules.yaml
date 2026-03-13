@@ -1,0 +1,19 @@
+- rule_id: DISP_ACCEPT
+  rule_type: disposition
+  priority: 50
+  enabled: true
+  match:
+    field_equals:
+      normalized_type: "TECHNICAL"
+  action:
+    disposition: "Accept"
+
+- rule_id: DISP_REJECT
+  rule_type: disposition
+  priority: 50
+  enabled: true
+  match:
+    field_equals:
+      normalized_type: "TECHNICAL"
+  action:
+    disposition: "Reject"

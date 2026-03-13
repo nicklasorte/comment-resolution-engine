@@ -1,0 +1,11 @@
+- rule_id: VAL_MISSING_CATEGORY
+  rule_type: validation
+  priority: 1
+  enabled: true
+  match:
+    boolean_true:
+      - missing_revision
+  action:
+    scope: run
+    block: true
+    message: "Missing category"

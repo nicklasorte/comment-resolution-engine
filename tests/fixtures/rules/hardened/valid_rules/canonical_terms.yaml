@@ -1,0 +1,9 @@
+- rule_id: CANONICAL_FIX
+  rule_type: canonical_term
+  priority: 10
+  enabled: true
+  match:
+    field_equals:
+      revision: "rev1"
+  action:
+    canonical_term: "rev1_label"

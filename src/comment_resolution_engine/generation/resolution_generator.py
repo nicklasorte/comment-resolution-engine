@@ -24,15 +24,15 @@ def _normalize_disposition(value: str) -> str:
 def determine_disposition(comment: AnalyzedComment, rule_engine: RuleEngine | None = None, run_context=None) -> tuple[str, list]:
     rule_matches: list = []
     if rule_engine and rule_engine.enabled:
-        issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+        issue_match, issue_matches = rule_engine.match_issue_pattern(comment, run_context=run_context)
         if issue_match and issue_match.applied_action.get("disposition"):
-            rule_matches.append(issue_match)
+            rule_matches.extend(issue_matches)
             comment.issue_pattern = comment.issue_pattern or issue_match.applied_action.get("issue_type", "")
             return issue_match.applied_action.get("disposition"), rule_matches
-        disposition, match = rule_engine.disposition_for_comment(comment, run_context=run_context)
+        disposition, match, disposition_matches = rule_engine.disposition_for_comment(comment, run_context=run_context)
         if disposition:
-            if match:
-                rule_matches.append(match)
+            if disposition_matches:
+                rule_matches.extend(disposition_matches)
             return disposition, rule_matches
 
     if comment.comment_disposition:
@@ -58,10 +58,10 @@ def _choose_resolution_basis(comment: AnalyzedComment, rule_engine: RuleEngine |
     if comment.issue_pattern:
         issue_type = comment.issue_pattern
     elif rule_engine and rule_engine.enabled:
-        issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+        issue_match, issue_matches = rule_engine.match_issue_pattern(comment, run_context=run_context)
         if issue_match:
             issue_type = issue_match.applied_action.get("issue_type", "")
-            rule_matches.append(issue_match)
+            rule_matches.extend(issue_matches)
 
     canonical_term = ""
     canonical_matches: List = []

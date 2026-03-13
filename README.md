@@ -102,12 +102,26 @@ python -m comment_resolution_engine.cli \
   --output outputs/resolved_matrix.xlsx \
   --rules-path ../spectrum-systems/rules/comment-resolution \
   --rules-profile default \
-  --rules-version 0.1.0
+  --rules-version 0.1.0 \
+  --rules-strict
 ```
 
 When `--rules-path` is omitted, the engine uses local canonical definitions, issue heuristics, disposition logic, and validation as a fallback.
 
 At least one `--report` argument is required. If a comment references a revision (e.g., `rev3`) without a matching PDF upload, the pipeline stops with a clear error.
+
+## Rule packs and validation
+- External rule packs are validated at load time for structure, required fields, and enum values (disposition, workflow status, validation status, error_category).
+- Strictness levels:
+  - **permissive** (default at runtime): unknown keys become warnings captured in provenance metadata.
+  - **strict** (recommended for tests/CI): unknown keys and missing required fields raise SCHEMA/VALIDATION errors.
+- Run a self-check without executing the full pipeline:
+
+```bash
+python -m comment_resolution_engine.cli --validate-rules --rules-path ../spectrum-systems/rules/comment-resolution --rules-strict
+```
+
+- Profile overrides must supply lists of rule overrides keyed by section (`canonical_terms`, `issue_patterns`, `disposition_rules`, `drafting_rules`, `validation_rules`). Malformed overrides fail fast in strict mode.
 
 ## Configure column mappings
 - Copy `config/column_mapping.example.yaml` to `config/column_mapping.yaml`.

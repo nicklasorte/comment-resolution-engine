@@ -1,0 +1,10 @@
+- rule_id: DISP_ACCEPT
+  rule_type: disposition
+  priority: 5
+  enabled: true
+  match:
+    field_equals:
+      normalized_type: "TECHNICAL"
+  action:
+    disposition: "Accept"
+    workflow_status: "resolved"
