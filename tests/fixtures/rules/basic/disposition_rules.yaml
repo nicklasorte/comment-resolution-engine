@@ -1,0 +1,8 @@
+- rule_id: DISP_RESOLVED_WHEN_REVISION_PRESENT
+  priority: 80
+  enabled: true
+  match:
+    field_equals:
+      resolved_against_revision: "rev2"
+  action:
+    disposition: "Accept"

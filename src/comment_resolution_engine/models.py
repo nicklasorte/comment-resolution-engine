@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from .contracts import DEFAULT_GENERATION_MODE
+
 
 @dataclass(slots=True)
 class CommentRecord:
@@ -61,6 +63,14 @@ class AnalyzedComment(NormalizedComment):
     patch_confidence: str = ""
     shared_resolution_id: str = ""
     canonical_term_used: str = ""
+    issue_pattern: str = ""
+    matched_rule_types: List[str] = field(default_factory=list)
+    applied_rules: List[dict] = field(default_factory=list)
+    rule_id: str = ""
+    rule_source: str = ""
+    rule_version: str = ""
+    rules_profile: str = ""
+    rules_version: str = ""
 
 
 @dataclass(slots=True)
@@ -85,6 +95,13 @@ class ResolutionDecision:
     validation_status: str = ""
     validation_notes: str = ""
     canonical_term_used: str = ""
+    generation_mode: str = DEFAULT_GENERATION_MODE
+    matched_rule_types: List[str] = field(default_factory=list)
+    rule_id: str = ""
+    rule_source: str = ""
+    rule_version: str = ""
+    rules_profile: str = ""
+    rules_version: str = ""
 
 
 @dataclass(slots=True)
@@ -103,6 +120,13 @@ class PatchRecord:
     resolved_against_revision: str = ""
     provenance_record_id: str = ""
     provenance: dict = field(default_factory=dict)
+    generation_mode: str = DEFAULT_GENERATION_MODE
+    matched_rule_types: List[str] = field(default_factory=list)
+    rule_id: str = ""
+    rule_source: str = ""
+    rule_version: str = ""
+    rules_profile: str = ""
+    rules_version: str = ""
 
 
 @dataclass(slots=True)

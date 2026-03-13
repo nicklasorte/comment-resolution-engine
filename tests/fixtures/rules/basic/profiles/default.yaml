@@ -1,0 +1,18 @@
+canonical_terms:
+  - rule_id: CANONICAL_METHOD_SCOPE
+    priority: 200
+    enabled: true
+    match:
+      text_contains: "methodology"
+    action:
+      canonical_term: "methodology_scope_profile"
+issue_patterns:
+  - rule_id: ISSUE_ALREADY_ADDRESSED
+    priority: 95
+    enabled: true
+    match:
+      text_contains: "already addressed in later revision"
+    action:
+      issue_type: "already_addressed_later_revision"
+      disposition: "Reject"
+      notes: "Handled in later revision."

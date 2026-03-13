@@ -30,9 +30,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--assemble-rev2", action="store_true", help="Assemble Rev-2 narrative from section rewrites.")
     parser.add_argument("--rev2-sections-output", required=False, help="Optional path for section-level Rev-2 rewrite JSON.")
     parser.add_argument("--rev2-draft-output", required=False, help="Optional path for assembled Rev-2 draft markdown.")
-    parser.add_argument("--rules-path", required=False, help="Optional path to an external ruleset (reserved for future shared rules).")
-    parser.add_argument("--rules-profile", required=False, help="Optional rules profile identifier (reserved for future shared rules).")
-    parser.add_argument("--rules-version", required=False, help="Optional rules version identifier (reserved for future shared rules).")
+    parser.add_argument("--rules-path", required=False, help="Optional path to an external ruleset directory (e.g., ../spectrum-systems/rules/comment-resolution).")
+    parser.add_argument("--rules-profile", required=False, help="Optional rules profile identifier (defaults to 'default' when available).")
+    parser.add_argument("--rules-version", required=False, help="Optional rules version identifier to record in provenance.")
     return parser
 
 
