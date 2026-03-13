@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .errors import CREError, ErrorCategory
+
 from .config import ColumnMappingConfig, normalize_header
 
 if TYPE_CHECKING:
@@ -13,6 +15,7 @@ CANONICAL_COLUMNS = [
     "reviewer_initials",
     "agency",
     "revision",
+    "resolved_against_revision",
     "report_version",
     "section",
     "page",
@@ -29,6 +32,10 @@ CANONICAL_COLUMNS = [
     "resolution",
     "report_context",
     "resolution_task",
+    "generation_mode",
+    "review_status",
+    "confidence_score",
+    "provenance_record_id",
     "comment_cluster_id",
     "intent_classification",
     "section_group",
@@ -52,7 +59,7 @@ def _require_pandas():
     try:
         import pandas as pd
     except ModuleNotFoundError as exc:
-        raise RuntimeError("pandas is required for Excel processing. Install dependencies with `pip install -r requirements.txt`.") from exc
+        raise CREError(ErrorCategory.EXTRACTION_ERROR, "pandas is required for Excel processing. Install dependencies with `pip install -r requirements.txt`.") from exc
     return pd
 
 
@@ -62,7 +69,7 @@ def _require_openpyxl():
         from openpyxl.styles import Alignment, Font
         from openpyxl.utils import get_column_letter
     except ModuleNotFoundError as exc:
-        raise RuntimeError("openpyxl is required for Excel formatting. Install dependencies with `pip install -r requirements.txt`.") from exc
+        raise CREError(ErrorCategory.EXTRACTION_ERROR, "openpyxl is required for Excel formatting. Install dependencies with `pip install -r requirements.txt`.") from exc
     return load_workbook, Alignment, Font, get_column_letter
 
 
@@ -116,6 +123,7 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "Page": 12,
         "Line": 14,
         "Line Number": 14,
+        "Resolved Against Revision": 22,
         "Comment Type": 22,
         "Agency Notes": 55,
         "Agency Suggested Text Change": 55,
@@ -141,6 +149,10 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "Shared Resolution Id": 22,
         "Canonical Term Used": 24,
         "Resolution Task": 70,
+        "Generation Mode": 24,
+        "Review Status": 20,
+        "Confidence Score": 18,
+        "Provenance Record Id": 26,
     }
 
     wrap_headers = {

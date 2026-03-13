@@ -22,6 +22,14 @@ class CommentRecord:
     wg_chain_comments: str = ""
     comment_disposition: str = ""
     resolution: str = ""
+    resolved_against_revision: str = ""
+    generation_mode: str = ""
+    review_status: str = ""
+    confidence_score: str = ""
+    record_type: str = "comment_resolution"
+    provenance_record_id: str = ""
+    source_document: str = ""
+    provenance: dict = field(default_factory=dict)
     raw_row: dict = field(default_factory=dict)
 
 
@@ -91,6 +99,10 @@ class PatchRecord:
     patch_source: str
     confidence: str
     shared_resolution_id: str = ""
+    source_revision: str = ""
+    resolved_against_revision: str = ""
+    provenance_record_id: str = ""
+    provenance: dict = field(default_factory=dict)
 
 
 @dataclass(slots=True)

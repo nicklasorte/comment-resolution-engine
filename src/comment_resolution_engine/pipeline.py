@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Iterable, List
 
 from .analysis import assign_clusters, classify_intent, group_by_section, heat_map
+from .contracts import DEFAULT_GENERATION_MODE, DEFAULT_WORKFLOW_NAME, DEFAULT_WORKFLOW_STEP
 from .config import load_column_mapping
 from .excel_io import write_resolution_workbook
+from .errors import CREError, ErrorCategory
 from .generation import (
     build_patch_records,
     build_resolution_decision,
@@ -22,6 +24,7 @@ from .generation import (
 from .ingest import load_pdf_contexts, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
+from .provenance import build_provenance_record
 from .validation import validate_resolution
 from .validation.rev2_validator import validate_section_rewrite
 
@@ -65,6 +68,42 @@ def _write_markdown(path: Path, lines: Iterable[str]) -> None:
     path.write_text("\n".join(lines))
 
 
+def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, rules_metadata: dict | None = None) -> dict:
+    resolved_revision = comment.resolved_against_revision or comment.revision
+    context = pdf_contexts.get(resolved_revision) or pdf_contexts.get(comment.revision)
+    source_document = comment.source_document or (context.source_path if context else "")
+    review_status = comment.review_status or decision.validation_status or _row_status(decision.validation_status)
+    confidence_score = comment.confidence_score or decision.patch_confidence
+    record_id = comment.provenance_record_id or f"prov-{comment.id}"
+
+    derived_from = {"raw_row": comment.raw_row}
+    if rules_metadata:
+        derived_from["rules"] = rules_metadata
+
+    provenance_record = build_provenance_record(
+        record_id=record_id,
+        record_type=comment.record_type or "comment_resolution",
+        source_document=source_document,
+        source_revision=comment.revision,
+        resolved_against_revision=resolved_revision,
+        derived_from=derived_from,
+        review_status=review_status,
+        confidence_score=confidence_score or "",
+        workflow_name=DEFAULT_WORKFLOW_NAME,
+        workflow_step=DEFAULT_WORKFLOW_STEP,
+        generation_mode=comment.generation_mode or DEFAULT_GENERATION_MODE,
+    )
+
+    comment.provenance_record_id = provenance_record.record_id
+    comment.review_status = review_status
+    comment.confidence_score = confidence_score or ""
+    comment.source_document = source_document
+    comment.resolved_against_revision = resolved_revision
+    comment.generation_mode = comment.generation_mode or DEFAULT_GENERATION_MODE
+    comment.provenance = provenance_record.asdict()
+    return provenance_record.asdict()
+
+
 def run_pipeline(
     comments_path: str | Path,
     report_path: str | Path | list[str | Path] | None,
@@ -82,10 +121,18 @@ def run_pipeline(
     assemble_rev2: bool = False,
     rev2_sections_output: str | Path | None = None,
     rev2_draft_output: str | Path | None = None,
+    rules_path: str | Path | None = None,
+    rules_profile: str | None = None,
+    rules_version: str | None = None,
 ):
     import pandas as pd
 
     mapping = load_column_mapping(config_path)
+    rules_metadata = {
+        "rules_path": str(rules_path) if rules_path else None,
+        "rules_profile": rules_profile or "local-defaults",
+        "rules_version": rules_version or "local",
+    }
     records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
     pdf_contexts = load_pdf_contexts(report_path)
     default_revision = next(iter(pdf_contexts))
@@ -96,10 +143,14 @@ def run_pipeline(
             if len(pdf_contexts) == 1:
                 revision = default_revision
             else:
-                raise RuntimeError("ERROR: Comments spreadsheet must contain a 'Revision' value for each comment when multiple working paper revisions are uploaded.")
+                raise CREError(ErrorCategory.VALIDATION_ERROR, "ERROR: Comments spreadsheet must contain a 'Revision' value for each comment when multiple working paper revisions are uploaded.")
         if revision not in pdf_contexts:
-            raise RuntimeError(f"ERROR: Comment references revision '{revision}' but no corresponding PDF was uploaded.")
+            raise CREError(ErrorCategory.PROVENANCE_ERROR, f"ERROR: Comment references revision '{revision}' but no corresponding PDF was uploaded.")
         record.revision = revision
+        record.resolved_against_revision = revision
+        record.source_document = pdf_contexts[revision].source_path
+        record.generation_mode = record.generation_mode or DEFAULT_GENERATION_MODE
+        record.review_status = record.review_status or _row_status(record.comment_disposition)
 
     normalized = normalize_comments(records, pdf_contexts)
     analyzed = _hydrate_analyzed_comments(normalized)
@@ -125,6 +176,7 @@ def run_pipeline(
 
     decisions = [build_resolution_decision(comment) for comment in analyzed]
     decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
+    provenance_records: list[dict] = []
 
     shared_resolutions = build_shared_resolutions(analyzed, decision_lookup)
     shared_lookup = {}
@@ -146,6 +198,10 @@ def run_pipeline(
             comment.patch_confidence = decision.patch_confidence
             comment.resolution_basis = decision.resolution_basis
             comment.canonical_term_used = decision.canonical_term_used
+            comment.review_status = comment.review_status or decision.validation_status
+            comment.confidence_score = comment.confidence_score or decision.patch_confidence
+            comment.generation_mode = comment.generation_mode or DEFAULT_GENERATION_MODE
+            provenance_records.append(_provenance_for_comment(comment, pdf_contexts, decision, rules_metadata))
 
     patches = build_patch_records(analyzed, decision_lookup)
     faq_entries = generate_faq(analyzed, decision_lookup)
@@ -158,6 +214,7 @@ def run_pipeline(
     _set_column(output_df, mapping, "reviewer_initials", [c.reviewer_initials for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "agency", [c.agency for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "revision", [c.revision for c in analyzed], always_override=False)
+    _set_column(output_df, mapping, "resolved_against_revision", [c.resolved_against_revision for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "report_version", [c.report_version for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "section", [c.section for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "page", [c.page for c in analyzed], always_override=False)
@@ -177,6 +234,10 @@ def run_pipeline(
     _set_column(output_df, mapping, "report_context", [c.report_context for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
+    _set_column(output_df, mapping, "generation_mode", [c.generation_mode for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "review_status", [c.review_status for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "confidence_score", [c.confidence_score for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "provenance_record_id", [c.provenance_record_id for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "comment_cluster_id", [c.cluster_id for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "cluster_label", [c.cluster_label for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "cluster_size", [str(c.cluster_size) for c in analyzed], always_override=True)
@@ -196,6 +257,7 @@ def run_pipeline(
     faq_file = Path(faq_output) if faq_output else base.with_name(base.stem + "_faq.md")
     summary_file = Path(summary_output) if summary_output else base.with_name(base.stem + "_section_summary.md")
     briefing_file = Path(briefing_output) if briefing_output else base.with_name(base.stem + "_briefing.md")
+    provenance_file = base.with_name(base.stem + "_provenance.json")
 
     _write_json(
         patch_file,
@@ -211,6 +273,10 @@ def run_pipeline(
                 "patch_source": p.patch_source,
                 "confidence": p.confidence,
                 "shared_resolution_id": p.shared_resolution_id,
+                "source_revision": p.source_revision,
+                "resolved_against_revision": p.resolved_against_revision,
+                "provenance_record_id": p.provenance_record_id,
+                "provenance": p.provenance,
             }
             for p in patches
         ],
@@ -228,6 +294,7 @@ def run_pipeline(
             for sr in shared_resolutions
         ],
     )
+    _write_json(provenance_file, provenance_records)
 
     faq_lines = ["# FAQ / Issue Log"]
     for entry in faq_entries:

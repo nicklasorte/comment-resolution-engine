@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
 from .pipeline import run_pipeline
+from .errors import CREError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,30 +30,40 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--assemble-rev2", action="store_true", help="Assemble Rev-2 narrative from section rewrites.")
     parser.add_argument("--rev2-sections-output", required=False, help="Optional path for section-level Rev-2 rewrite JSON.")
     parser.add_argument("--rev2-draft-output", required=False, help="Optional path for assembled Rev-2 draft markdown.")
+    parser.add_argument("--rules-path", required=False, help="Optional path to an external ruleset (reserved for future shared rules).")
+    parser.add_argument("--rules-profile", required=False, help="Optional rules profile identifier (reserved for future shared rules).")
+    parser.add_argument("--rules-version", required=False, help="Optional rules version identifier (reserved for future shared rules).")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
     draft_sections = [part.strip() for part in (args.draft_sections.split(",") if args.draft_sections else []) if part.strip()]
-    df = run_pipeline(
-        comments_path=args.comments,
-        report_path=args.report,
-        output_path=args.output,
-        config_path=args.config,
-        patch_output=args.patch_output,
-        faq_output=args.faq_output,
-        summary_output=args.summary_output,
-        briefing_output=args.briefing_output,
-        draft_rev2=args.draft_rev2,
-        draft_mode=args.draft_mode,
-        draft_sections=draft_sections or None,
-        draft_high_priority_only=args.draft_high_priority_only,
-        draft_shared_only=args.draft_shared_only,
-        assemble_rev2=args.assemble_rev2,
-        rev2_sections_output=args.rev2_sections_output,
-        rev2_draft_output=args.rev2_draft_output,
-    )
+    try:
+        df = run_pipeline(
+            comments_path=args.comments,
+            report_path=args.report,
+            output_path=args.output,
+            config_path=args.config,
+            patch_output=args.patch_output,
+            faq_output=args.faq_output,
+            summary_output=args.summary_output,
+            briefing_output=args.briefing_output,
+            draft_rev2=args.draft_rev2,
+            draft_mode=args.draft_mode,
+            draft_sections=draft_sections or None,
+            draft_high_priority_only=args.draft_high_priority_only,
+            draft_shared_only=args.draft_shared_only,
+            assemble_rev2=args.assemble_rev2,
+            rev2_sections_output=args.rev2_sections_output,
+            rev2_draft_output=args.rev2_draft_output,
+            rules_path=args.rules_path,
+            rules_profile=args.rules_profile,
+            rules_version=args.rules_version,
+        )
+    except CREError as exc:
+        print(f"ERROR {exc}")
+        sys.exit(1)
     print(f"Wrote {len(df)} rows to {args.output}")
 
 

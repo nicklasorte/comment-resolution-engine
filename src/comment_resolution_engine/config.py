@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable
 
+from .errors import CREError, ErrorCategory
+
 
 DEFAULT_SYNONYMS: Dict[str, list[str]] = {
     "comment_number": ["comment no.", "comment no", "comment number", "cmt #", "cmt#", "comment #"],
@@ -22,6 +24,7 @@ DEFAULT_SYNONYMS: Dict[str, list[str]] = {
         "category",
         "classification",
     ],
+    "resolved_against_revision": ["resolved against revision", "resolved revision"],
     "agency_notes": ["agency notes", "comment", "reviewer comment", "agency comment", "notes"],
     "agency_suggested_text": [
         "agency suggested text change",
@@ -40,6 +43,10 @@ DEFAULT_SYNONYMS: Dict[str, list[str]] = {
     "status": ["status", "state", "resolution status", "row status"],
     "report_context": ["report context", "context", "pdf context"],
     "resolution_task": ["resolution task", "task", "llm task"],
+    "generation_mode": ["generation mode", "mode"],
+    "review_status": ["review status", "review state"],
+    "confidence_score": ["confidence score", "confidence"],
+    "provenance_record_id": ["provenance record id", "provenance id"],
     "patch_text": ["patch text", "report patch", "edit text"],
     "patch_source": ["patch source", "patch origin"],
     "patch_confidence": ["patch confidence", "patch certainty"],
@@ -77,6 +84,7 @@ DEFAULT_MAPPING = ColumnMappingConfig(
         "reviewer_initials": "Reviewer Initials",
         "agency": "Agency",
         "revision": "Revision",
+        "resolved_against_revision": "Resolved Against Revision",
         "report_version": "Report Version",
         "section": "Section",
         "page": "Page",
@@ -93,6 +101,10 @@ DEFAULT_MAPPING = ColumnMappingConfig(
         "status": "Status",
         "report_context": "Report Context",
         "resolution_task": "Resolution Task",
+        "generation_mode": "Generation Mode",
+        "review_status": "Review Status",
+        "confidence_score": "Confidence Score",
+        "provenance_record_id": "Provenance Record Id",
         "comment_cluster_id": "Comment Cluster Id",
         "intent_classification": "Intent Classification",
         "section_group": "Section Group",
@@ -125,7 +137,7 @@ def load_column_mapping(path: str | Path | None) -> ColumnMappingConfig:
     try:
         import yaml
     except ModuleNotFoundError as exc:
-        raise RuntimeError("PyYAML is required to read --config YAML files. Install dependencies with `pip install -r requirements.txt`.") from exc
+        raise CREError(ErrorCategory.EXTRACTION_ERROR, "PyYAML is required to read --config YAML files. Install dependencies with `pip install -r requirements.txt`.") from exc
 
     config_path = Path(path)
     raw_data = yaml.safe_load(config_path.read_text()) or {}

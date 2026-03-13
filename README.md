@@ -1,11 +1,17 @@
 # comment-resolution-engine
 
-A practical Python tool for NTIA-style comment resolution matrices. It now behaves like a deterministic engineering pipeline: it ingests a spreadsheet, requires at least one working paper PDF (with optional later revisions), analyzes multi-agency feedback at scale, and emits structured artifacts (matrix updates, report patch proposals, FAQ log, section briefs, and briefing bullets).
+A practical Python tool for NTIA-style comment resolution matrices. It now behaves like a deterministic engineering pipeline: it ingests a spreadsheet, requires at least one working paper PDF (and supports optional later revisions), analyzes multi-agency feedback at scale, and emits structured artifacts (matrix updates, report patch proposals, FAQ log, section briefs, and briefing bullets).
+
+Implements: SYS-001  
+Source Architecture Repo: spectrum-systems  
+Governing Spec: docs/system-spec-comment-resolution-engine.md  
+Governing Provenance Guidance: docs/provenance-implementation-guidance.md  
+Governing Error Taxonomy: docs/error-taxonomy.md
 
 ## What this tool does now
 - Runs a five-stage pipeline: **Ingest → Normalize → Analyze → Generate → Validate**.
 - Ingests Excel matrices with automatic header detection and canonicalizes to structured `CommentRecord` objects.
-- Optionally parses line-numbered PDFs to attach context windows (line −5 to +5) to each comment.
+- Parses line-numbered PDFs (at least one required, multiple supported) to attach context windows (line −5 to +5) to each comment.
 - Normalizes comment type variants into **TECHNICAL / CLARIFICATION / EDITORIAL** and derives effective comment text.
 - Analyzes comments with clustering (TF‑IDF similarity), section grouping, intent classification, and heat maps to locate hot spots.
 - Generates report-ready **Disposition**, **NTIA Comments**, and **Resolution** text grounded in PDF context for technical items.
@@ -48,12 +54,15 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 1. **Excel/CSV comment resolution matrix** with the NTIA headers above or common variants, including a `Revision` column to map comments to working paper revisions.
 2. **Working paper PDF revisions** (at least one) with line numbers for grounding (`--report`). Provide multiple `--report` flags in revision order to load later versions (rev1, rev2, rev3, ...).
 
+If only one PDF is provided, blank `Revision` cells map to `rev1`. When multiple revisions are uploaded, every comment must declare a `Revision` value, and any reference to a revision without a matching uploaded PDF fails fast with a clear error.
+
 ## Outputs
 1. Updated Excel matrix with:
    - Core metadata (Comment Number, Reviewer Initials, Agency, Report Version, Section, Page, Line)
    - Agency inputs (Notes, Suggested Text, WG Chain Comments)
    - NTIA outputs (NTIA Comments, Disposition, Resolution, Report Context, Resolution Task)
    - Analysis + validation (Comment Cluster Id, Intent Classification, Section Group, Heat Level, Validation Status/Notes)
+   - Traceability + provenance (Resolved Against Revision, Generation Mode, Review Status, Confidence Score, Provenance Record Id)
 2. Proposed report patch file (JSON, default `<output>_patches.json`) and shared resolution file (`<output>_shared_resolutions.json`).
 3. FAQ / issue log (`<output>_faq.md`).
 4. Section summary memo (`<output>_section_summary.md`).
@@ -61,6 +70,7 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 6. Section-level Rev-2 rewrite records (`<output>_rev2_sections.json`) when `--draft-rev2` is enabled.
 7. Optional assembled Rev-2 narrative (`<output>_rev2_draft.md`) when `--assemble-rev2` is enabled.
 8. Rev-2 revision appendix with rationale and traceability (`<output>_rev2_appendix.md`) produced when `--assemble-rev2` is enabled.
+9. Companion provenance feed (`<output>_provenance.json`) aligning outputs to SYS-001 provenance guidance and error taxonomy versions.
 
 ## Usage
 
@@ -82,6 +92,16 @@ python -m comment_resolution_engine.cli \
   --assemble-rev2
 ```
 
+Rules integration placeholders are available now for future shared rulepacks:
+
+```bash
+  --rules-path config/rules.yaml \
+  --rules-profile default \
+  --rules-version v1
+```
+
+When not supplied, the engine continues to use its local deterministic defaults.
+
 At least one `--report` argument is required. If a comment references a revision (e.g., `rev3`) without a matching PDF upload, the pipeline stops with a clear error.
 
 ## Configure column mappings
@@ -93,7 +113,7 @@ At least one `--report` argument is required. If a comment references a revision
 ## PDF handling
 - PDF parsing is intentionally lightweight and best effort.
 - Multiple working paper revisions are indexed separately (rev1, rev2, rev3...). The first `--report` is treated as `rev1` unless the filename already contains `revN`.
-- If a PDF is provided and a line reference is present, nearby numbered lines are pulled into `Report Context`; otherwise a placeholder is added.
+- If a PDF is provided and a line reference is present, nearby numbered lines are pulled into `Report Context`; otherwise a placeholder is added. Referencing a `revN` without uploading the matching PDF stops the pipeline with a PROVENANCE_ERROR.
 
 ## Deterministic today vs. future LLM integration
 - Deterministic now:
@@ -173,3 +193,7 @@ python -m pytest
 ```
 
 Tests that require optional runtime packages (`pandas`, `openpyxl`) are auto-skipped if those packages are unavailable in the current environment.
+
+## Error taxonomy and provenance
+- Every validation or ingest failure is surfaced with a structured category: `EXTRACTION_ERROR`, `SCHEMA_ERROR`, `GENERATION_ERROR`, `PROVENANCE_ERROR`, or `VALIDATION_ERROR`.
+- Provenance metadata is emitted per row and per patch, including record identifiers, revision lineage, workflow identifiers, schema/spec versions, and confidence/review status.

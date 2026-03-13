@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
+from ..errors import CREError, ErrorCategory
+
 LINE_REF_TOKEN_RE = re.compile(r"\d+\s*(?:-\s*\d+)?")
 LEADING_LINE_RE = re.compile(r"^\s*(\d+)\s*[:.)\-]?\s*(.*)$")
 
@@ -28,6 +30,9 @@ def parse_line_reference(line_reference: str) -> list[int]:
 class PdfContext:
     pages: Dict[int, List[Tuple[int, str]]]
     raw_pages: Dict[int, List[str]] = field(default_factory=dict)
+    label: str = ""
+    source_path: str = ""
+    revision_index: int = 0
 
     def extract_window(self, page: int | None, line_reference: str | int | None, window: int = 5) -> Tuple[str, str]:
         if not (self.pages or self.raw_pages) or line_reference in (None, ""):
@@ -100,7 +105,7 @@ def _index_lines(pages_text: List[str]) -> Tuple[Dict[int, List[Tuple[int, str]]
     return indexed, raw_lookup
 
 
-def load_pdf_context(pdf_path: str | Path | None) -> PdfContext:
+def load_pdf_context(pdf_path: str | Path | None, *, label: str = "", revision_index: int = 0) -> PdfContext:
     if not pdf_path:
         return PdfContext(pages={}, raw_pages={})
     pdf_path = Path(pdf_path)
@@ -110,7 +115,7 @@ def load_pdf_context(pdf_path: str | Path | None) -> PdfContext:
     else:
         pages_text = _safe_extract_text(pdf_path)
     indexed, raw_lookup = _index_lines(pages_text)
-    return PdfContext(pages=indexed, raw_pages=raw_lookup)
+    return PdfContext(pages=indexed, raw_pages=raw_lookup, label=label, source_path=str(pdf_path), revision_index=revision_index)
 
 
 def _infer_revision_label(path: Path, index: int) -> str:
@@ -124,7 +129,7 @@ def _infer_revision_label(path: Path, index: int) -> str:
 
 def load_pdf_contexts(report_paths: str | Path | Iterable[str | Path] | None) -> dict[str, PdfContext]:
     if not report_paths:
-        raise RuntimeError("ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
+        raise CREError(ErrorCategory.PROVENANCE_ERROR, "ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
 
     if isinstance(report_paths, (str, Path)):
         normalized_paths = [report_paths]
@@ -132,7 +137,7 @@ def load_pdf_contexts(report_paths: str | Path | Iterable[str | Path] | None) ->
         normalized_paths = list(report_paths)
 
     if not normalized_paths:
-        raise RuntimeError("ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
+        raise CREError(ErrorCategory.PROVENANCE_ERROR, "ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
 
     contexts: dict[str, PdfContext] = {}
     for idx, raw_path in enumerate(normalized_paths):
@@ -140,5 +145,5 @@ def load_pdf_contexts(report_paths: str | Path | Iterable[str | Path] | None) ->
         label = _infer_revision_label(path, idx)
         if label in contexts:
             label = f"rev{idx + 1}"
-        contexts[label] = load_pdf_context(path)
+        contexts[label] = load_pdf_context(path, label=label, revision_index=idx)
     return contexts
