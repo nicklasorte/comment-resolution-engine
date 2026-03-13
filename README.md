@@ -62,7 +62,7 @@ If only one PDF is provided, blank `Revision` cells map to `rev1`. When multiple
    - Agency inputs (Notes, Suggested Text, WG Chain Comments)
    - NTIA outputs (NTIA Comments, Disposition, Resolution, Report Context, Resolution Task)
    - Analysis + validation (Comment Cluster Id, Intent Classification, Section Group, Heat Level, Validation Status/Notes)
-   - Traceability + provenance (Resolved Against Revision, Generation Mode, Review Status, Confidence Score, Provenance Record Id)
+   - Traceability + provenance (Resolved Against Revision, Generation Mode, Rule Id/Source/Version, Rules Profile/Version, Matched Rule Types, Review Status, Confidence Score, Provenance Record Id)
 2. Proposed report patch file (JSON, default `<output>_patches.json`) and shared resolution file (`<output>_shared_resolutions.json`).
 3. FAQ / issue log (`<output>_faq.md`).
 4. Section summary memo (`<output>_section_summary.md`).
@@ -92,15 +92,20 @@ python -m comment_resolution_engine.cli \
   --assemble-rev2
 ```
 
-Rules integration placeholders are available now for future shared rulepacks:
+To consume a shared rules pack (e.g., spectrum-systems starter rules), point the CLI at the rules directory. Rules are applied deterministically ahead of local fallbacks.
 
 ```bash
-  --rules-path config/rules.yaml \
+python -m comment_resolution_engine.cli \
+  --comments examples/sample_comment_matrix.csv \
+  --report inputs/report_rev1.pdf \
+  --report inputs/report_rev2.pdf \
+  --output outputs/resolved_matrix.xlsx \
+  --rules-path ../spectrum-systems/rules/comment-resolution \
   --rules-profile default \
-  --rules-version v1
+  --rules-version 0.1.0
 ```
 
-When not supplied, the engine continues to use its local deterministic defaults.
+When `--rules-path` is omitted, the engine uses local canonical definitions, issue heuristics, disposition logic, and validation as a fallback.
 
 At least one `--report` argument is required. If a comment references a revision (e.g., `rev3`) without a matching PDF upload, the pipeline stops with a clear error.
 

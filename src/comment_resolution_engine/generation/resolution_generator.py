@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import List, Tuple
 
 from ..knowledge.canonical_definitions import lookup_definition, lookup_rationale, match_canonical_term
 from ..knowledge.issue_library import detect_issue_type, find_issue
 from ..models import AnalyzedComment, ResolutionDecision
+from ..rules import RuleEngine, summarize_rule_matches
+from ..rules.provenance import GENERATION_MODE_EXTERNAL, GENERATION_MODE_HYBRID, GENERATION_MODE_LOCAL
+from ..contracts import DEFAULT_GENERATION_MODE
 
 
 def _normalize_disposition(value: str) -> str:
@@ -18,39 +21,70 @@ def _normalize_disposition(value: str) -> str:
     return ""
 
 
-def determine_disposition(comment: AnalyzedComment) -> str:
-    if comment.comment_disposition:
-        return _normalize_disposition(comment.comment_disposition) or "Accept"
+def determine_disposition(comment: AnalyzedComment, rule_engine: RuleEngine | None = None, run_context=None) -> tuple[str, list]:
+    rule_matches: list = []
+    if rule_engine and rule_engine.enabled:
+        issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+        if issue_match and issue_match.applied_action.get("disposition"):
+            rule_matches.append(issue_match)
+            comment.issue_pattern = comment.issue_pattern or issue_match.applied_action.get("issue_type", "")
+            return issue_match.applied_action.get("disposition"), rule_matches
+        disposition, match = rule_engine.disposition_for_comment(comment, run_context=run_context)
+        if disposition:
+            if match:
+                rule_matches.append(match)
+            return disposition, rule_matches
 
+    if comment.comment_disposition:
+        return _normalize_disposition(comment.comment_disposition) or "Accept", rule_matches
     if comment.intent_classification == "OUT_OF_SCOPE":
-        return "Reject"
+        return "Reject", rule_matches
 
     if comment.normalized_type == "TECHNICAL" and comment.context_confidence in {"NO_CONTEXT_FOUND"}:
-        return "Partial Accept"
+        return "Partial Accept", rule_matches
 
     if comment.normalized_type == "EDITORIAL":
-        return "Accept"
+        return "Accept", rule_matches
 
     if "reject" in (comment.effective_comment or "").lower() and "already" in (comment.effective_comment or "").lower():
-        return "Reject"
+        return "Reject", rule_matches
 
-    return "Accept"
+    return "Accept", rule_matches
 
 
-def _choose_resolution_basis(comment: AnalyzedComment) -> Tuple[str, str]:
-    issue_type = detect_issue_type(" ".join([comment.effective_comment or "", comment.effective_suggested_text or "", comment.cluster_label or ""]))
-    canonical_term = match_canonical_term(" ".join([comment.effective_comment or "", comment.effective_suggested_text or "", comment.report_context or "", comment.cluster_label or ""]))
+def _choose_resolution_basis(comment: AnalyzedComment, rule_engine: RuleEngine | None, run_context=None) -> Tuple[str, str, str, List]:
+    rule_matches: List = []
+    issue_type = ""
+    if comment.issue_pattern:
+        issue_type = comment.issue_pattern
+    elif rule_engine and rule_engine.enabled:
+        issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+        if issue_match:
+            issue_type = issue_match.applied_action.get("issue_type", "")
+            rule_matches.append(issue_match)
+
+    canonical_term = ""
+    canonical_matches: List = []
+    if rule_engine:
+        canonical_term, canonical_matches = rule_engine.resolve_canonical_term(comment)
+        rule_matches.extend(canonical_matches)
+    if not canonical_term:
+        canonical_term = match_canonical_term(" ".join([comment.effective_comment or "", comment.effective_suggested_text or "", comment.report_context or "", comment.cluster_label or ""]))
+
     if canonical_term:
-        return canonical_term, "canonical_definition"
+        return canonical_term, "canonical_definition", canonical_term, rule_matches
     if issue_type:
-        return issue_type, "issue_library"
+        return issue_type, "issue_library", canonical_term, rule_matches
+    detected_issue = detect_issue_type(" ".join([comment.effective_comment or "", comment.effective_suggested_text or "", comment.cluster_label or ""]))
+    if detected_issue:
+        return detected_issue, "issue_library", canonical_term, rule_matches
     if comment.cluster_label:
-        return comment.cluster_label, "cluster_theme"
-    return comment.intent_classification or "comment_intent", "comment_intent"
+        return comment.cluster_label, "cluster_theme", canonical_term, rule_matches
+    return comment.intent_classification or "comment_intent", "comment_intent", canonical_term, rule_matches
 
 
-def _generate_rationale(comment: AnalyzedComment, disposition: str, basis_value: str, basis_source: str) -> Tuple[str, str]:
-    canonical_term = basis_value if basis_source == "canonical_definition" else ""
+def _generate_rationale(comment: AnalyzedComment, disposition: str, basis_value: str, basis_source: str, canonical_term: str) -> Tuple[str, str]:
+    canonical_term = canonical_term or (basis_value if basis_source == "canonical_definition" else "")
     rationale_parts: list[str] = []
     if disposition == "Reject":
         rationale_parts.append("The requested change was not adopted")
@@ -117,14 +151,36 @@ def _ntia_comment(disposition: str, patch_text: str, context_confidence: str) ->
     return f"{prefix} Patch drafted; verify placement due to missing PDF context."
 
 
-def build_resolution_decision(comment: AnalyzedComment) -> ResolutionDecision:
-    disposition = determine_disposition(comment)
-    basis_value, basis_source = _choose_resolution_basis(comment)
-    rationale_text, canonical_term = _generate_rationale(comment, disposition, basis_value, basis_source)
+def _apply_summary(decision: ResolutionDecision, comment: AnalyzedComment, summary: dict) -> None:
+    decision.rule_id = summary.get("rule_id", "")
+    decision.rule_source = summary.get("rule_source", "")
+    decision.rule_version = summary.get("rule_version", "")
+    decision.rules_profile = summary.get("rules_profile", "")
+    decision.rules_version = summary.get("rules_version", "")
+    decision.matched_rule_types = summary.get("matched_rule_types", [])
+    decision.generation_mode = summary.get("generation_mode", decision.generation_mode or DEFAULT_GENERATION_MODE)
+    comment.rule_id = decision.rule_id
+    comment.rule_source = decision.rule_source
+    comment.rule_version = decision.rule_version
+    comment.rules_profile = decision.rules_profile
+    comment.rules_version = decision.rules_version
+    comment.matched_rule_types = summary.get("matched_rule_types", [])
+    comment.generation_mode = decision.generation_mode
+    if summary.get("applied_rules"):
+        comment.applied_rules.extend(summary.get("applied_rules", []))
+
+
+def build_resolution_decision(comment: AnalyzedComment, rule_engine: RuleEngine | None = None, run_context=None) -> ResolutionDecision:
+    rule_matches: List = []
+    disposition, disposition_matches = determine_disposition(comment, rule_engine=rule_engine, run_context=run_context)
+    rule_matches.extend(disposition_matches)
+    basis_value, basis_source, canonical_term, basis_matches = _choose_resolution_basis(comment, rule_engine, run_context=run_context)
+    rule_matches.extend(basis_matches)
+    rationale_text, canonical_term = _generate_rationale(comment, disposition, basis_value, basis_source, canonical_term)
     patch_text, patch_source, patch_confidence, canonical_term_used = _generate_patch_text(comment, disposition, basis_value, basis_source, canonical_term)
     ntia_comment = _ntia_comment(disposition, patch_text, comment.context_confidence)
 
-    return ResolutionDecision(
+    decision = ResolutionDecision(
         disposition=disposition,
         ntia_comment=ntia_comment,
         resolution_text=rationale_text,
@@ -137,3 +193,8 @@ def build_resolution_decision(comment: AnalyzedComment) -> ResolutionDecision:
         validation_notes="",
         canonical_term_used=canonical_term_used,
     )
+
+    fallback_mode = GENERATION_MODE_HYBRID if rule_matches else GENERATION_MODE_LOCAL
+    summary = summarize_rule_matches(rule_matches, rule_engine.rule_pack.to_metadata() if rule_engine and rule_engine.rule_pack else {}, fallback_mode=fallback_mode)
+    _apply_summary(decision, comment, summary)
+    return decision

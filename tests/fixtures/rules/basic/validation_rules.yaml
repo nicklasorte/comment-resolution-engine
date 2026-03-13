@@ -1,0 +1,35 @@
+- rule_id: VALIDATE_NO_PDFS
+  priority: 120
+  enabled: true
+  match:
+    numeric_equals:
+      pdf_count: 0
+  action:
+    scope: run
+    error_category: PROVENANCE_ERROR
+    message: "No working paper PDFs were supplied."
+    blocking: true
+
+- rule_id: VALIDATE_MISSING_REVISION
+  priority: 110
+  enabled: true
+  match:
+    boolean_true:
+      - missing_revision
+  action:
+    scope: run
+    error_category: PROVENANCE_ERROR
+    message: "Referenced revision is missing."
+    blocking: true
+
+- rule_id: VALIDATE_NEEDS_REVIEW
+  priority: 60
+  enabled: true
+  match:
+    field_equals:
+      context_confidence: "NO_CONTEXT_FOUND"
+  action:
+    scope: comment
+    status: "needs_review"
+    code: "MISSING_CONTEXT"
+    notes: "Context unavailable; review required."

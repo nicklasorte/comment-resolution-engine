@@ -1,0 +1,18 @@
+- rule_id: CANONICAL_REV_LABEL
+  priority: 100
+  enabled: true
+  match:
+    field_equals:
+      revision: "rev_02"
+  action:
+    set_field:
+      revision: "rev2"
+    canonical_term: "revision_alignment"
+
+- rule_id: CANONICAL_METHOD_SCOPE
+  priority: 60
+  enabled: true
+  match:
+    text_contains: "methodology"
+  action:
+    canonical_term: "methodology_scope"

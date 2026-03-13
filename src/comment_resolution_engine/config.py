@@ -57,6 +57,12 @@ DEFAULT_SYNONYMS: Dict[str, list[str]] = {
     "cluster_size": ["cluster size", "cluster count"],
     "shared_resolution_id": ["shared resolution id", "master resolution id"],
     "canonical_term_used": ["canonical term", "canonical term used"],
+    "rule_id": ["rule id", "primary rule id"],
+    "rule_source": ["rule source", "rules source"],
+    "rule_version": ["rule version", "rule pack version"],
+    "rules_profile": ["rules profile", "rule profile"],
+    "rules_version": ["rules version", "rules pack version"],
+    "matched_rule_types": ["matched rule types", "rule matches"],
 }
 
 
@@ -121,6 +127,12 @@ DEFAULT_MAPPING = ColumnMappingConfig(
         "cluster_size": "Cluster Size",
         "shared_resolution_id": "Shared Resolution Id",
         "canonical_term_used": "Canonical Term Used",
+        "rule_id": "Rule Id",
+        "rule_source": "Rule Source",
+        "rule_version": "Rule Version",
+        "rules_profile": "Rules Profile",
+        "rules_version": "Rules Version",
+        "matched_rule_types": "Matched Rule Types",
     },
     synonyms=DEFAULT_SYNONYMS,
 )

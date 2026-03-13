@@ -18,12 +18,33 @@ columns:
   status: "Status"
   report_context: "Report Context"
   resolution_task: "Resolution Task"
+  generation_mode: "Generation Mode"
+  review_status: "Review Status"
+  confidence_score: "Confidence Score"
+  provenance_record_id: "Provenance Record Id"
+  validation_code: "Validation Code"
+  validation_status: "Validation Status"
+  validation_notes: "Validation Notes"
+  resolved_against_revision: "Resolved Against Revision"
+  patch_text: "Patch Text"
+  patch_source: "Patch Source"
+  patch_confidence: "Patch Confidence"
+  resolution_basis: "Resolution Basis"
+  context_confidence: "Context Confidence"
+  cluster_label: "Cluster Label"
+  cluster_size: "Cluster Size"
+  shared_resolution_id: "Shared Resolution Id"
+  canonical_term_used: "Canonical Term Used"
+  rule_id: "Rule Id"
+  rule_source: "Rule Source"
+  rule_version: "Rule Version"
+  rules_profile: "Rules Profile"
+  rules_version: "Rules Version"
+  matched_rule_types: "Matched Rule Types"
   comment_cluster_id: "Comment Cluster Id"
   intent_classification: "Intent Classification"
   section_group: "Section Group"
   heat_level: "Heat Level"
-  validation_status: "Validation Status"
-  validation_notes: "Validation Notes"
 
 synonyms:
   comment_number:
@@ -111,3 +132,51 @@ synonyms:
     - "Resolution Task"
     - "Task"
     - "LLM Task"
+  generation_mode:
+    - "Generation Mode"
+  review_status:
+    - "Review Status"
+  confidence_score:
+    - "Confidence Score"
+  provenance_record_id:
+    - "Provenance Record Id"
+    - "Provenance Id"
+  validation_code:
+    - "Validation Code"
+  resolved_against_revision:
+    - "Resolved Against Revision"
+  patch_text:
+    - "Patch Text"
+  patch_source:
+    - "Patch Source"
+  patch_confidence:
+    - "Patch Confidence"
+  resolution_basis:
+    - "Resolution Basis"
+  context_confidence:
+    - "Context Confidence"
+  cluster_label:
+    - "Cluster Label"
+  cluster_size:
+    - "Cluster Size"
+    - "Cluster Count"
+  shared_resolution_id:
+    - "Shared Resolution Id"
+  canonical_term_used:
+    - "Canonical Term Used"
+  rule_id:
+    - "Rule Id"
+    - "Primary Rule Id"
+  rule_source:
+    - "Rule Source"
+  rule_version:
+    - "Rule Version"
+  rules_profile:
+    - "Rules Profile"
+    - "Rule Profile"
+  rules_version:
+    - "Rules Version"
+    - "Rule Pack Version"
+  matched_rule_types:
+    - "Matched Rule Types"
+    - "Rule Matches"

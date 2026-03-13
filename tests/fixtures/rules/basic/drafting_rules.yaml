@@ -1,0 +1,17 @@
+- rule_id: DRAFT_APPEND_LINEAGE
+  priority: 40
+  enabled: true
+  match:
+    field_equals:
+      disposition: "Accept"
+  action:
+    append_resolution: "Includes revision lineage: {resolved_against_revision}."
+
+- rule_id: DRAFT_REVIEW_CALLOUT
+  priority: 30
+  enabled: true
+  match:
+    field_equals:
+      validation_status: "needs_review"
+  action:
+    append_ntia_comment: "Review required for context."

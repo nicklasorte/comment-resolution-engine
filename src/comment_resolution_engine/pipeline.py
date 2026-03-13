@@ -25,6 +25,7 @@ from .ingest import load_pdf_contexts, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
 from .provenance import build_provenance_record
+from .rules import RuleEngine, load_rule_pack
 from .validation import validate_resolution
 from .validation.rev2_validator import validate_section_rewrite
 
@@ -68,6 +69,29 @@ def _write_markdown(path: Path, lines: Iterable[str]) -> None:
     path.write_text("\n".join(lines))
 
 
+def _apply_rule_metadata(target, summary: dict) -> None:
+    if not summary:
+        return
+    if hasattr(target, "rule_id"):
+        target.rule_id = summary.get("rule_id", "")
+    if hasattr(target, "rule_source"):
+        target.rule_source = summary.get("rule_source", "")
+    if hasattr(target, "rule_version"):
+        target.rule_version = summary.get("rule_version", "")
+    if hasattr(target, "rules_profile"):
+        target.rules_profile = summary.get("rules_profile", "")
+    if hasattr(target, "rules_version"):
+        target.rules_version = summary.get("rules_version", "")
+    if hasattr(target, "matched_rule_types"):
+        target.matched_rule_types = list(summary.get("matched_rule_types", []))
+    if hasattr(target, "generation_mode") and summary.get("generation_mode"):
+        target.generation_mode = summary.get("generation_mode")
+    if hasattr(target, "applied_rules"):
+        applied = list(getattr(target, "applied_rules") or [])
+        applied.extend(summary.get("applied_rules", []))
+        target.applied_rules = applied
+
+
 def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, rules_metadata: dict | None = None) -> dict:
     resolved_revision = comment.resolved_against_revision or comment.revision
     context = pdf_contexts.get(resolved_revision) or pdf_contexts.get(comment.revision)
@@ -79,6 +103,8 @@ def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, ru
     derived_from = {"raw_row": comment.raw_row}
     if rules_metadata:
         derived_from["rules"] = rules_metadata
+    if getattr(comment, "applied_rules", None):
+        derived_from["applied_rules"] = comment.applied_rules
 
     provenance_record = build_provenance_record(
         record_id=record_id,
@@ -128,16 +154,31 @@ def run_pipeline(
     import pandas as pd
 
     mapping = load_column_mapping(config_path)
-    rules_metadata = {
+    rule_pack = load_rule_pack(rules_path, profile=rules_profile, requested_version=rules_version) if rules_path else None
+    rule_engine = RuleEngine(rule_pack)
+    rules_metadata = rule_pack.to_metadata() if rule_pack else {
         "rules_path": str(rules_path) if rules_path else None,
         "rules_profile": rules_profile or "local-defaults",
         "rules_version": rules_version or "local",
+        "rules_loaded_count": 0,
     }
     records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
+    pre_pdf_context = {"pdf_count": len(report_path) if isinstance(report_path, list) else (1 if report_path else 0)}
+    if rule_engine.enabled:
+        rule_engine.apply_run_validations(pre_pdf_context)
     pdf_contexts = load_pdf_contexts(report_path)
     default_revision = next(iter(pdf_contexts))
 
+    run_context = {
+        "pdf_revisions": list(pdf_contexts.keys()),
+        "pdf_count": len(pdf_contexts),
+        "rules_profile": rules_metadata.get("rules_profile"),
+        "rules_version": rules_metadata.get("rules_version"),
+    }
+
     for record in records:
+        if rule_engine.enabled:
+            rule_engine.apply_canonical_rules(record, run_context=run_context)
         revision = (record.revision or "").strip().lower()
         if not revision:
             if len(pdf_contexts) == 1:
@@ -145,6 +186,9 @@ def run_pipeline(
             else:
                 raise CREError(ErrorCategory.VALIDATION_ERROR, "ERROR: Comments spreadsheet must contain a 'Revision' value for each comment when multiple working paper revisions are uploaded.")
         if revision not in pdf_contexts:
+            missing_context = {**run_context, "missing_revision": revision}
+            if rule_engine.enabled:
+                rule_engine.apply_run_validations(missing_context)
             raise CREError(ErrorCategory.PROVENANCE_ERROR, f"ERROR: Comment references revision '{revision}' but no corresponding PDF was uploaded.")
         record.revision = revision
         record.resolved_against_revision = revision
@@ -154,6 +198,14 @@ def run_pipeline(
 
     normalized = normalize_comments(records, pdf_contexts)
     analyzed = _hydrate_analyzed_comments(normalized)
+
+    if rule_engine.enabled:
+        for comment in analyzed:
+            matches = rule_engine.apply_canonical_rules(comment, run_context=run_context)
+            if matches:
+                summary = rule_engine.summarize_matches(matches)
+                _apply_rule_metadata(comment, summary)
+                comment.generation_mode = summary.get("generation_mode", comment.generation_mode or DEFAULT_GENERATION_MODE)
 
     cluster_output = assign_clusters(analyzed)
     cluster_ids = cluster_output.assignments
@@ -173,8 +225,16 @@ def run_pipeline(
         count, level = heat_levels.get(comment.section_group, (len(section_groups.get(comment.section_group, [])), "LOW"))
         comment.heat_count = count
         comment.heat_level = level
+        if rule_engine.enabled:
+            issue_match = rule_engine.match_issue_pattern(comment, run_context=run_context)
+            if issue_match:
+                comment.issue_pattern = issue_match.applied_action.get("issue_type", "")
+                summary = rule_engine.summarize_matches([issue_match])
+                _apply_rule_metadata(comment, summary)
+                if summary.get("generation_mode"):
+                    comment.generation_mode = summary["generation_mode"]
 
-    decisions = [build_resolution_decision(comment) for comment in analyzed]
+    decisions = [build_resolution_decision(comment, rule_engine=rule_engine, run_context=run_context) for comment in analyzed]
     decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
     provenance_records: list[dict] = []
 
@@ -188,8 +248,27 @@ def run_pipeline(
         if comment.id in shared_lookup:
             comment.shared_resolution_id = shared_lookup[comment.id]
 
-    decisions = [validate_resolution(c, decision_lookup[c.id]) for c in analyzed]
+    decisions = [validate_resolution(c, decision_lookup[c.id], rule_engine=rule_engine, run_context=run_context) for c in analyzed]
     decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
+    if rule_engine.enabled:
+        updated_decisions = []
+        for comment, decision in zip(analyzed, decisions):
+            matches, resolution_text, ntia_comment = rule_engine.apply_drafting_rules(comment, decision, run_context=run_context)
+            if matches:
+                decision.resolution_text = resolution_text
+                decision.ntia_comment = ntia_comment
+                summary = rule_engine.summarize_matches(matches)
+                decision.matched_rule_types = list(dict.fromkeys((decision.matched_rule_types or []) + summary.get("matched_rule_types", [])))
+                decision.rule_id = decision.rule_id or summary.get("rule_id", "")
+                decision.rule_source = decision.rule_source or summary.get("rule_source", "")
+                decision.rule_version = decision.rule_version or summary.get("rule_version", "")
+                decision.rules_profile = decision.rules_profile or summary.get("rules_profile", "")
+                decision.rules_version = decision.rules_version or summary.get("rules_version", "")
+                decision.generation_mode = summary.get("generation_mode", decision.generation_mode)
+                comment.applied_rules.extend(summary.get("applied_rules", []))
+            updated_decisions.append(decision)
+        decisions = updated_decisions
+        decision_lookup = {comment.id: decision for comment, decision in zip(analyzed, decisions)}
     for comment in analyzed:
         decision = decision_lookup.get(comment.id)
         if decision:
@@ -200,8 +279,23 @@ def run_pipeline(
             comment.canonical_term_used = decision.canonical_term_used
             comment.review_status = comment.review_status or decision.validation_status
             comment.confidence_score = comment.confidence_score or decision.patch_confidence
-            comment.generation_mode = comment.generation_mode or DEFAULT_GENERATION_MODE
-            provenance_records.append(_provenance_for_comment(comment, pdf_contexts, decision, rules_metadata))
+            comment.generation_mode = decision.generation_mode or comment.generation_mode or DEFAULT_GENERATION_MODE
+            if decision.rule_id:
+                comment.rule_id = decision.rule_id
+                comment.rule_source = decision.rule_source
+                comment.rule_version = decision.rule_version
+                comment.rules_profile = decision.rules_profile
+                comment.rules_version = decision.rules_version
+                comment.matched_rule_types = decision.matched_rule_types
+                comment.applied_rules.extend(getattr(comment, "applied_rules", []))
+            decision_rules_metadata = {
+                **(rules_metadata or {}),
+                "rule_id": decision.rule_id,
+                "rule_source": decision.rule_source,
+                "rule_version": decision.rule_version,
+                "matched_rule_types": decision.matched_rule_types,
+            }
+            provenance_records.append(_provenance_for_comment(comment, pdf_contexts, decision, decision_rules_metadata))
 
     patches = build_patch_records(analyzed, decision_lookup)
     faq_entries = generate_faq(analyzed, decision_lookup)
@@ -235,6 +329,12 @@ def run_pipeline(
     _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
     _set_column(output_df, mapping, "generation_mode", [c.generation_mode for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "rule_id", [c.rule_id for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "rule_source", [c.rule_source for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "rule_version", [c.rule_version for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "rules_profile", [c.rules_profile for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "rules_version", [c.rules_version for c in analyzed], always_override=True)
+    _set_column(output_df, mapping, "matched_rule_types", ["|".join(c.matched_rule_types or []) for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "review_status", [c.review_status for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "confidence_score", [c.confidence_score for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "provenance_record_id", [c.provenance_record_id for c in analyzed], always_override=True)

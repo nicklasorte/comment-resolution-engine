@@ -47,6 +47,13 @@ def build_patch_records(comments: Iterable[AnalyzedComment], decision_lookup: di
                 resolved_against_revision=comment.resolved_against_revision or comment.revision,
                 provenance_record_id=comment.provenance_record_id or "",
                 provenance=comment.provenance or {},
+                generation_mode=decision.generation_mode,
+                matched_rule_types=decision.matched_rule_types or [],
+                rule_id=decision.rule_id,
+                rule_source=decision.rule_source,
+                rule_version=decision.rule_version,
+                rules_profile=decision.rules_profile,
+                rules_version=decision.rules_version,
             )
         )
     return patches
