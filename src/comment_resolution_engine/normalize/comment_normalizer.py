@@ -39,13 +39,17 @@ def derive_effective_suggested_text(suggested: str) -> str:
     return str(suggested).strip() if suggested else ""
 
 
-def normalize_comments(records: Iterable[CommentRecord], pdf_context: PdfContext) -> List[NormalizedComment]:
+def normalize_comments(records: Iterable[CommentRecord], pdf_context: dict[str, PdfContext]) -> List[NormalizedComment]:
     normalized: List[NormalizedComment] = []
     for record in records:
         ntype = normalize_type(record.comment_type) or normalize_type(record.agency_notes) or normalize_type(record.agency_suggested_text)
         effective_comment = derive_effective_comment(record.agency_notes, record.agency_suggested_text)
         effective_suggested_text = derive_effective_suggested_text(record.agency_suggested_text)
-        context, context_confidence = pdf_context.extract_window(record.page, record.line, window=5) if pdf_context else ("", "NO_CONTEXT_FOUND")
+        revision = (record.revision or "").strip().lower()
+        context, context_confidence = ("", "NO_CONTEXT_FOUND")
+        ctx = pdf_context.get(revision) if pdf_context else None
+        if ctx:
+            context, context_confidence = ctx.extract_window(record.page, record.line, window=5)
 
         normalized.append(
             NormalizedComment(

@@ -1,6 +1,6 @@
 # comment-resolution-engine
 
-A practical Python tool for NTIA-style comment resolution matrices. It now behaves like a deterministic engineering pipeline: it ingests a spreadsheet, optionally reads a line-numbered PDF, analyzes multi-agency feedback at scale, and emits structured artifacts (matrix updates, report patch proposals, FAQ log, section briefs, and briefing bullets).
+A practical Python tool for NTIA-style comment resolution matrices. It now behaves like a deterministic engineering pipeline: it ingests a spreadsheet, requires at least one working paper PDF (with optional later revisions), analyzes multi-agency feedback at scale, and emits structured artifacts (matrix updates, report patch proposals, FAQ log, section briefs, and briefing bullets).
 
 ## What this tool does now
 - Runs a five-stage pipeline: **Ingest → Normalize → Analyze → Generate → Validate**.
@@ -45,8 +45,8 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 - **Resolution**: Final report-ready text to insert or substitute in the report (not meta-commentary).
 
 ## Inputs
-1. **Excel comment resolution matrix** (`.xlsx`) with the NTIA headers above or common variants.
-2. **Optional PDF report** with line numbers for grounding (`--report`), best-effort parsing only.
+1. **Excel/CSV comment resolution matrix** with the NTIA headers above or common variants, including a `Revision` column to map comments to working paper revisions.
+2. **Working paper PDF revisions** (at least one) with line numbers for grounding (`--report`). Provide multiple `--report` flags in revision order to load later versions (rev1, rev2, rev3, ...).
 
 ## Outputs
 1. Updated Excel matrix with:
@@ -67,7 +67,8 @@ A practical Python tool for NTIA-style comment resolution matrices. It now behav
 ```bash
 python -m comment_resolution_engine.cli \
   --comments inputs/comment_resolution_matrix.xlsx \
-  --report inputs/report.pdf \
+  --report inputs/report_rev1.pdf \
+  --report inputs/report_rev2.pdf \
   --output outputs/resolved_matrix.xlsx \
   --config config/column_mapping.yaml \
   --patch-output outputs/report_patches.json \
@@ -81,7 +82,7 @@ python -m comment_resolution_engine.cli \
   --assemble-rev2
 ```
 
-If `--report` is omitted, the pipeline still runs without PDF context and produces the analysis/generation artifacts.
+At least one `--report` argument is required. If a comment references a revision (e.g., `rev3`) without a matching PDF upload, the pipeline stops with a clear error.
 
 ## Configure column mappings
 - Copy `config/column_mapping.example.yaml` to `config/column_mapping.yaml`.
@@ -91,6 +92,7 @@ If `--report` is omitted, the pipeline still runs without PDF context and produc
 
 ## PDF handling
 - PDF parsing is intentionally lightweight and best effort.
+- Multiple working paper revisions are indexed separately (rev1, rev2, rev3...). The first `--report` is treated as `rev1` unless the filename already contains `revN`.
 - If a PDF is provided and a line reference is present, nearby numbered lines are pulled into `Report Context`; otherwise a placeholder is added.
 
 ## Deterministic today vs. future LLM integration

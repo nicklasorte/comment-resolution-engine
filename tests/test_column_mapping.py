@@ -19,6 +19,7 @@ def test_normalize_comment_matrix_with_synonyms():
             "Internal Comments": ["Existing note"],
             "Accept/Reject": ["Reject"],
             "Proposed Resolution": ["No change"],
+            "Revision": ["rev1"],
         }
     )
 
@@ -31,3 +32,4 @@ def test_normalize_comment_matrix_with_synonyms():
     assert out.iloc[0]["agency_suggested_text"] == "Add assumption language"
     assert out.iloc[0]["status"] == "Open"
     assert out.iloc[0]["disposition"] == "Reject"
+    assert out.iloc[0]["revision"] == "rev1"

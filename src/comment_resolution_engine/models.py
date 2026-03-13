@@ -11,6 +11,7 @@ class CommentRecord:
     id: str
     reviewer_initials: str
     agency: str
+    revision: str
     report_version: str
     section: str
     page: Optional[int]

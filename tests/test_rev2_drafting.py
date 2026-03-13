@@ -20,11 +20,13 @@ def _analyzed_comment(
     context: str = "",
     context_confidence: str = "EXACT_LINE_MATCH",
     heat_level: str = "HIGH",
+    revision: str = "rev1",
 ) -> AnalyzedComment:
     return AnalyzedComment(
         id=cid,
         reviewer_initials="AB",
         agency="Agency",
+        revision=revision,
         report_version="Draft",
         section=section,
         page=1,
@@ -73,6 +75,7 @@ def test_rev2_pipeline_outputs_rewrites_and_draft(tmp_path: Path):
             ],
             "Section": ["3.1", "3.1"],
             "Line": ["12", "18"],
+            "Revision": ["rev1", "rev1"],
         }
     )
     df.to_excel(comments_path, index=False)

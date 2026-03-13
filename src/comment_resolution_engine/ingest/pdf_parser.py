@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 LINE_REF_TOKEN_RE = re.compile(r"\d+\s*(?:-\s*\d+)?")
 LEADING_LINE_RE = re.compile(r"^\s*(\d+)\s*[:.)\-]?\s*(.*)$")
@@ -111,3 +111,34 @@ def load_pdf_context(pdf_path: str | Path | None) -> PdfContext:
         pages_text = _safe_extract_text(pdf_path)
     indexed, raw_lookup = _index_lines(pages_text)
     return PdfContext(pages=indexed, raw_pages=raw_lookup)
+
+
+def _infer_revision_label(path: Path, index: int) -> str:
+    stem = path.stem.lower()
+    pattern = r"rev[_\-]?(\d+)"
+    match = re.search(pattern, stem)
+    if match:
+        return f"rev{match.group(1)}"
+    return f"rev{index + 1}"
+
+
+def load_pdf_contexts(report_paths: str | Path | Iterable[str | Path] | None) -> dict[str, PdfContext]:
+    if not report_paths:
+        raise RuntimeError("ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
+
+    if isinstance(report_paths, (str, Path)):
+        normalized_paths = [report_paths]
+    else:
+        normalized_paths = list(report_paths)
+
+    if not normalized_paths:
+        raise RuntimeError("ERROR: A working paper PDF is required. Please upload at least one revision of the working paper.")
+
+    contexts: dict[str, PdfContext] = {}
+    for idx, raw_path in enumerate(normalized_paths):
+        path = Path(raw_path)
+        label = _infer_revision_label(path, idx)
+        if label in contexts:
+            label = f"rev{idx + 1}"
+        contexts[label] = load_pdf_context(path)
+    return contexts
