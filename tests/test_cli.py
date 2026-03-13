@@ -60,3 +60,5 @@ def test_cli_parser_accepts_expected_args():
     assert args.rules_path == "rules.yaml"
     assert args.rules_profile == "baseline"
     assert args.rules_version == "v1.2.3"
+    assert args.rules_strict is False
+    assert args.validate_rules is False

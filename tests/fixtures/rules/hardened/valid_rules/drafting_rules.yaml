@@ -1,0 +1,9 @@
+- rule_id: DRAFT_APPEND
+  rule_type: drafting
+  priority: 1
+  enabled: true
+  match:
+    field_equals:
+      disposition: "Accept"
+  action:
+    append_resolution: "Appended text."

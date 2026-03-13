@@ -1,0 +1,12 @@
+- rule_id: VAL_BLOCK
+  rule_type: validation
+  priority: 10
+  enabled: true
+  match:
+    boolean_true:
+      - missing_revision
+  action:
+    scope: run
+    blocking: true
+    error_category: PROVENANCE_ERROR
+    message: "Missing revision"
