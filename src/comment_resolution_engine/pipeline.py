@@ -6,7 +6,15 @@ from pathlib import Path
 from typing import Iterable, List
 
 from .analysis import assign_clusters, classify_intent, group_by_section, heat_map
-from .contracts import DEFAULT_GENERATION_MODE, DEFAULT_WORKFLOW_NAME, DEFAULT_WORKFLOW_STEP
+from .contracts import (
+    ConstitutionContext,
+    DEFAULT_CONSTITUTION_PATH,
+    DEFAULT_GENERATION_MODE,
+    DEFAULT_WORKFLOW_NAME,
+    DEFAULT_WORKFLOW_STEP,
+    default_constitution_context,
+)
+from .contracts.loader import load_constitution
 from .config import load_column_mapping
 from .excel_io import write_resolution_workbook
 from .errors import CREError, ErrorCategory
@@ -92,7 +100,7 @@ def _apply_rule_metadata(target, summary: dict) -> None:
         target.applied_rules = applied
 
 
-def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, rules_metadata: dict | None = None) -> dict:
+def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, rules_metadata: dict | None = None, constitution: ConstitutionContext | None = None) -> dict:
     resolved_revision = comment.resolved_against_revision or comment.revision
     context = pdf_contexts.get(resolved_revision) or pdf_contexts.get(comment.revision)
     source_document = comment.source_document or (context.source_path if context else "")
@@ -118,6 +126,7 @@ def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, ru
         workflow_name=DEFAULT_WORKFLOW_NAME,
         workflow_step=DEFAULT_WORKFLOW_STEP,
         generation_mode=comment.generation_mode or DEFAULT_GENERATION_MODE,
+        constitution=constitution,
     )
 
     comment.provenance_record_id = provenance_record.record_id
@@ -151,8 +160,26 @@ def run_pipeline(
     rules_profile: str | None = None,
     rules_version: str | None = None,
     rules_strict: bool = False,
+    constitution_path: str | Path | None = None,
+    constitution_report_path: str | Path | None = None,
+    compatibility_mode: str | None = None,
+    fail_on_drift: bool = False,
+    skip_constitution_check: bool = False,
+    constitution_context: ConstitutionContext | None = None,
 ):
     import pandas as pd
+
+    active_constitution = constitution_context or default_constitution_context()
+    if not skip_constitution_check and constitution_context is None:
+        active_constitution, _ = load_constitution(
+            manifest_path=constitution_path or DEFAULT_CONSTITUTION_PATH,
+            compatibility_mode=compatibility_mode,
+            rules_profile=rules_profile,
+            rules_version=rules_version,
+            fail_on_drift=fail_on_drift,
+            require_compatible=True,
+            report_path=constitution_report_path,
+        )
 
     mapping = load_column_mapping(config_path)
     rule_pack = (
@@ -184,6 +211,9 @@ def run_pipeline(
         "pdf_count": len(pdf_contexts),
         "rules_profile": rules_metadata.get("rules_profile"),
         "rules_version": rules_metadata.get("rules_version"),
+        "constitution_version": active_constitution.pinned_version,
+        "constitution_commit": active_constitution.pinned_commit,
+        "constitution_mode": active_constitution.compatibility_mode,
     }
 
     for record in records:
@@ -305,7 +335,7 @@ def run_pipeline(
                 "rule_version": decision.rule_version,
                 "matched_rule_types": decision.matched_rule_types,
             }
-            provenance_records.append(_provenance_for_comment(comment, pdf_contexts, decision, decision_rules_metadata))
+            provenance_records.append(_provenance_for_comment(comment, pdf_contexts, decision, decision_rules_metadata, active_constitution))
 
     patches = build_patch_records(analyzed, decision_lookup)
     faq_entries = generate_faq(analyzed, decision_lookup)

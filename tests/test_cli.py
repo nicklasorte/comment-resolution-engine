@@ -34,6 +34,13 @@ def test_cli_parser_accepts_expected_args():
         "rev2.json",
         "--rev2-draft-output",
         "rev2.md",
+        "--constitution",
+        "config/constitution.yaml",
+        "--constitution-report",
+        "outputs/constitution_report.json",
+        "--compatibility-mode",
+        "warn",
+        "--fail-on-drift",
         "--rules-path",
         "rules.yaml",
         "--rules-profile",
@@ -57,6 +64,10 @@ def test_cli_parser_accepts_expected_args():
     assert args.assemble_rev2 is True
     assert args.rev2_sections_output == "rev2.json"
     assert args.rev2_draft_output == "rev2.md"
+    assert args.constitution == "config/constitution.yaml"
+    assert args.constitution_report == "outputs/constitution_report.json"
+    assert args.compatibility_mode == "warn"
+    assert args.fail_on_drift is True
     assert args.rules_path == "rules.yaml"
     assert args.rules_profile == "baseline"
     assert args.rules_version == "v1.2.3"

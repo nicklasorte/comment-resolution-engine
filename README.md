@@ -8,6 +8,11 @@ Governing Spec: docs/system-spec-comment-resolution-engine.md
 Governing Provenance Guidance: docs/provenance-implementation-guidance.md  
 Governing Error Taxonomy: docs/error-taxonomy.md
 
+Constitution alignment:
+- `config/constitution.yaml` pins SYS-001 to the spectrum-systems constitution and enumerates schema, prompt, rules, provenance, and error taxonomy references.
+- Validate without running the pipeline using `python -m comment_resolution_engine.cli --check-constitution --constitution config/constitution.yaml --constitution-report outputs/constitution_report.json`.
+- Runtime flags `--constitution`, `--constitution-report`, `--compatibility-mode`, `--fail-on-drift`, and `--rules-profile` control compatibility enforcement and reporting.
+
 ## What this tool does now
 - Runs a five-stage pipeline: **Ingest → Normalize → Analyze → Generate → Validate**.
 - Ingests Excel matrices with automatic header detection and canonicalizes to structured `CommentRecord` objects.

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from .pipeline import run_pipeline
 from .errors import CREError
 from .rules import Strictness, load_rule_pack
+from .contracts.loader import load_constitution
+from .contracts import DEFAULT_CONSTITUTION_PATH
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--assemble-rev2", action="store_true", help="Assemble Rev-2 narrative from section rewrites.")
     parser.add_argument("--rev2-sections-output", required=False, help="Optional path for section-level Rev-2 rewrite JSON.")
     parser.add_argument("--rev2-draft-output", required=False, help="Optional path for assembled Rev-2 draft markdown.")
+    parser.add_argument("--constitution", required=False, default="config/constitution.yaml", help="Path to constitution manifest (YAML).")
+    parser.add_argument("--check-constitution", action="store_true", help="Validate constitution compatibility and exit.")
+    parser.add_argument("--constitution-report", required=False, help="Path for constitution compatibility report JSON.")
+    parser.add_argument("--fail-on-drift", action="store_true", help="Treat constitution drift as fatal even in warn mode.")
+    parser.add_argument("--compatibility-mode", required=False, choices=["strict", "warn"], help="Override manifest compatibility mode.")
     parser.add_argument("--rules-path", required=False, help="Optional path to an external ruleset directory (e.g., ../spectrum-systems/rules/comment-resolution).")
     parser.add_argument("--rules-profile", required=False, help="Optional rules profile identifier (defaults to 'default' when available).")
     parser.add_argument("--rules-version", required=False, help="Optional rules version identifier to record in provenance.")
@@ -42,8 +50,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     draft_sections = [part.strip() for part in (args.draft_sections.split(",") if args.draft_sections else []) if part.strip()]
+    constitution_report_path = args.constitution_report
+    if not constitution_report_path and args.output:
+        base = Path(args.output)
+        constitution_report_path = base.with_name(base.stem + "_constitution_report.json")
+    if not constitution_report_path and args.check_constitution:
+        constitution_report_path = Path("outputs/constitution_report.json")
     try:
-        if not args.validate_rules and (not args.comments or not args.report or not args.output):
+        if not args.validate_rules and not args.check_constitution and (not args.comments or not args.report or not args.output):
             print("ERROR: --comments, --report, and --output are required unless --validate-rules is used.")
             sys.exit(1)
         if args.validate_rules:
@@ -61,6 +75,19 @@ def main() -> None:
                     message = warning.get("message", "")
                     category = warning.get("category", "WARNING")
                     print(f"- [{category}] {file} {rid} {field} {message}".strip())
+            sys.exit(0)
+        constitution_context, constitution_report = load_constitution(
+            manifest_path=args.constitution or DEFAULT_CONSTITUTION_PATH,
+            compatibility_mode=args.compatibility_mode,
+            rules_profile=args.rules_profile,
+            rules_version=args.rules_version,
+            fail_on_drift=args.fail_on_drift,
+            require_compatible=True,
+            report_path=constitution_report_path,
+        )
+        if args.check_constitution:
+            status = "compatible" if constitution_report.compatible else "incompatible"
+            print(f"Constitution check {status}. Report written to {constitution_report_path}.")
             sys.exit(0)
         df = run_pipeline(
             comments_path=args.comments,
@@ -83,6 +110,12 @@ def main() -> None:
             rules_profile=args.rules_profile,
             rules_version=args.rules_version,
             rules_strict=args.rules_strict,
+            constitution_path=args.constitution,
+            constitution_report_path=constitution_report_path,
+            compatibility_mode=args.compatibility_mode,
+            fail_on_drift=args.fail_on_drift,
+            constitution_context=constitution_context,
+            skip_constitution_check=True,
         )
     except CREError as exc:
         print(f"ERROR {exc}")
