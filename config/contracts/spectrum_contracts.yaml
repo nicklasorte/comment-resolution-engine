@@ -1,0 +1,8 @@
+standards_source_repo: spectrum-systems
+reference:
+  reviewer_comment_set_schema: ../docs/system-spec-comment-resolution-engine.md
+  comment_resolution_matrix_schema: ../docs/system-spec-comment-resolution-engine.md
+  provenance_guidance: ../docs/provenance-implementation-guidance.md
+snapshot: |
+  This repository consumes the canonical contracts defined in spectrum-systems.
+  If a temporary snapshot is needed, record the upstream commit and sync frequently rather than forking.

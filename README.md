@@ -7,6 +7,11 @@ Source Architecture Repo: spectrum-systems
 Governing Spec: docs/system-spec-comment-resolution-engine.md  
 Governing Provenance Guidance: docs/provenance-implementation-guidance.md  
 Governing Error Taxonomy: docs/error-taxonomy.md
+Contract role:
+- Repo role: engine_repo (czar org)
+- Contract mode: consume_and_produce
+- Consumes canonical `reviewer_comment_set` artifacts (plus standards manifest) from spectrum-systems / working-paper-review-engine
+- Produces canonical `comment_resolution_matrix` and `provenance_record` artifacts aligned to spectrum-systems contracts (legacy Excel output remains for compatibility)
 
 Constitution alignment:
 - `config/constitution.yaml` pins SYS-001 to the spectrum-systems constitution and enumerates schema, prompt, rules, provenance, and error taxonomy references.
@@ -76,6 +81,13 @@ If only one PDF is provided, blank `Revision` cells map to `rev1`. When multiple
 7. Optional assembled Rev-2 narrative (`<output>_rev2_draft.md`) when `--assemble-rev2` is enabled.
 8. Rev-2 revision appendix with rationale and traceability (`<output>_rev2_appendix.md`) produced when `--assemble-rev2` is enabled.
 9. Companion provenance feed (`<output>_provenance.json`) aligning outputs to SYS-001 provenance guidance and error taxonomy versions.
+10. Canonical artifacts: `<output>_comment_resolution_matrix.json` and `<output>_provenance_record.json`, which implement the spectrum-systems contracts for interoperability.
+
+## Czar architecture context
+- This repository is an operational engine repo in the czar org and defers to `spectrum-systems` as the constitutional source of truth.
+- Upstream systems such as `working-paper-review-engine` emit canonical `reviewer_comment_set` artifacts; this engine validates and consumes them (or adapts legacy matrices) before transformation.
+- The engine produces canonical `comment_resolution_matrix` artifacts plus provenance records for structured review, revision tracking, and downstream reporting.
+- Contract conformance is what enables interoperability; adapters for legacy spreadsheets remain available but canonical JSON artifacts are preferred going forward.
 
 ## Usage
 
@@ -96,6 +108,9 @@ python -m comment_resolution_engine.cli \
   --draft-high-priority-only \
   --assemble-rev2
 ```
+
+The CLI also writes canonical contract artifacts alongside the workbook:
+`<output>_comment_resolution_matrix.json` and `<output>_provenance_record.json` implement the spectrum-systems contracts for downstream interoperability.
 
 To consume a shared rules pack (e.g., spectrum-systems starter rules), point the CLI at the rules directory. Rules are applied deterministically ahead of local fallbacks.
 

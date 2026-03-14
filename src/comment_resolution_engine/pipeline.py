@@ -14,6 +14,17 @@ from .contracts import (
     DEFAULT_WORKFLOW_STEP,
     default_constitution_context,
 )
+from .contracts.artifacts import (
+    build_adapter_artifact,
+    build_comment_records_from_artifact,
+    build_comment_resolution_matrix_artifact,
+    build_provenance_record_artifact,
+    load_reviewer_comment_set,
+    new_resolution_run_id,
+    validate_reviewer_comment_set,
+    validate_comment_resolution_matrix_artifact,
+    validate_provenance_record_artifact,
+)
 from .contracts.loader import load_constitution
 from .config import load_column_mapping
 from .excel_io import write_resolution_workbook
@@ -169,6 +180,7 @@ def run_pipeline(
 ):
     import pandas as pd
 
+    resolution_run_id = new_resolution_run_id()
     active_constitution = constitution_context or default_constitution_context()
     if not skip_constitution_check and constitution_context is None:
         active_constitution, _ = load_constitution(
@@ -182,6 +194,15 @@ def run_pipeline(
         )
 
     mapping = load_column_mapping(config_path)
+    reviewer_artifact = None
+    if isinstance(comments_path, (str, Path)) and str(comments_path).lower().endswith((".json", ".yaml", ".yml")):
+        reviewer_artifact = load_reviewer_comment_set(Path(comments_path))
+
+    if reviewer_artifact:
+        records, normalized_df, raw_df = build_comment_records_from_artifact(reviewer_artifact, mapping)
+    else:
+        records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
+        reviewer_artifact = validate_reviewer_comment_set(build_adapter_artifact(records, source_path=comments_path), allow_blank_revision=True)
     rule_pack = (
         load_rule_pack(
             rules_path,
@@ -214,6 +235,8 @@ def run_pipeline(
         "constitution_version": active_constitution.pinned_version,
         "constitution_commit": active_constitution.pinned_commit,
         "constitution_mode": active_constitution.compatibility_mode,
+        "resolution_run_id": resolution_run_id,
+        "source_comment_set_id": reviewer_artifact.get("artifact_id") if reviewer_artifact else None,
     }
 
     for record in records:
@@ -435,6 +458,29 @@ def run_pipeline(
         ],
     )
     _write_json(provenance_file, provenance_records)
+
+    canonical_matrix = build_comment_resolution_matrix_artifact(
+        run_id=resolution_run_id,
+        input_artifact=reviewer_artifact,
+        comments=analyzed,
+        decisions=decisions,
+        provenance_records=provenance_records,
+        constitution=active_constitution,
+        rules_metadata=rules_metadata,
+    )
+    validate_comment_resolution_matrix_artifact(canonical_matrix)
+    canonical_matrix_path = base.with_name(base.stem + "_comment_resolution_matrix.json")
+    _write_json(canonical_matrix_path, canonical_matrix)
+
+    canonical_provenance = build_provenance_record_artifact(
+        run_id=resolution_run_id,
+        input_artifact=reviewer_artifact,
+        matrix_artifact=canonical_matrix,
+        provenance_records=provenance_records,
+        constitution=active_constitution,
+    )
+    validate_provenance_record_artifact(canonical_provenance)
+    _write_json(base.with_name(base.stem + "_provenance_record.json"), canonical_provenance)
 
     faq_lines = ["# FAQ / Issue Log"]
     for entry in faq_entries:
