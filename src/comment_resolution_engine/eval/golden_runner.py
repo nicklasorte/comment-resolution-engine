@@ -63,7 +63,13 @@ def discover_cases(base_dir: Path) -> List[GoldenCase]:
 def _read_provenance(output_path: Path) -> Sequence[dict]:
     provenance_file = output_path.with_name(output_path.stem + "_provenance.json")
     if provenance_file.exists():
-        return json.loads(provenance_file.read_text() or "[]")
+        data = json.loads(provenance_file.read_text() or "[]")
+        payload = data.get("payload") if isinstance(data, dict) else data
+        if isinstance(payload, dict) and "records" in payload:
+            return payload.get("records") or []
+        if isinstance(payload, list):
+            return payload
+        return []
     return []
 
 

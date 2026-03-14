@@ -69,9 +69,12 @@ def test_reviewer_comment_set_cli_smoke(tmp_path):
     with provenance_path.open() as f:
         provenance_artifact = json.load(f)
 
+    matrix_payload = matrix_artifact.get("payload", matrix_artifact)
+    provenance_payload = provenance_artifact.get("payload", provenance_artifact)
+
     assert matrix_artifact.get("artifact_type") == "comment_resolution_matrix"
-    assert matrix_artifact.get("rows")
-    assert matrix_artifact.get("source_reviewer_comment_set", {}).get("id") == "example-reviewer-comment-set"
+    assert matrix_payload.get("rows")
+    assert matrix_payload.get("source_reviewer_comment_set", {}).get("id") == "example-reviewer-comment-set"
 
     assert provenance_artifact.get("artifact_type") == "provenance_record"
-    assert provenance_artifact.get("records")
+    assert provenance_payload.get("records")

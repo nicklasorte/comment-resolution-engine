@@ -1,55 +1,86 @@
 {
   "artifact_type": "provenance_record",
   "artifact_version": "1.0.0",
-  "schema_version": "1.0.0",
-  "standards_source_repo": "spectrum-systems",
-  "contract_version": "1.0.0",
-  "resolution_run_id": "resolution-run-example",
-  "source_reviewer_comment_set": {
-    "id": "example-reviewer-comment-set",
-    "version": "1.0.0",
-    "contract_version": "1.0.0"
-  },
-  "source_comment_resolution_matrix": {
-    "id": "resolution-run-example",
-    "version": "1.0.0",
-    "schema_version": "1.0.0"
-  },
-  "constitution": {
-    "source_repo": "spectrum-systems",
-    "pinned_version": "1.0.0",
-    "pinned_commit": ""
-  },
-  "generated_at": "2026-03-01T00:10:00Z",
-  "records": [
+  "artifact_id": "resolution-run-example",
+  "created_at_utc": "2026-03-01T00:10:00Z",
+  "produced_by": "comment-resolution-engine",
+  "tool_version": "0.1.0",
+  "input_artifacts": [
     {
-      "record_id": "prov-C-001",
-      "record_type": "comment_resolution",
-      "source_document": "inputs/report_rev1.pdf",
-      "source_revision": "rev1",
-      "resolved_against_revision": "rev1",
-      "workflow_name": "NTIA Comment Resolution Pipeline",
-      "workflow_step": "generate_outputs",
-      "generated_by_system": "SYS-001",
-      "generated_by_repo": "comment-resolution-engine",
-      "generated_by_version": "0.1.0",
-      "prompt_version": "1.0.0",
+      "artifact_type": "reviewer_comment_set",
+      "artifact_id": "example-reviewer-comment-set",
+      "artifact_version": "1.0.0",
+      "contract_version": "1.0.0",
       "schema_version": "1.0.0",
-      "provenance_guidance_version": "1.0.0",
-      "error_taxonomy_version": "1.0.0",
-      "derived_from": {
-        "raw_row": {}
-      },
-      "review_status": "Complete",
-      "confidence_score": "",
-      "constitution_source_repo": "spectrum-systems",
-      "constitution_version": "1.0.0",
-      "constitution_commit": "",
-      "rules_profile": "",
-      "rules_version": "",
-      "created_at": "2026-03-01T00:10:00Z",
-      "updated_at": "2026-03-01T00:10:00Z",
-      "generation_mode": "DETERMINISTIC_PIPELINE"
+      "standards_source_repo": "spectrum-systems"
+    },
+    {
+      "artifact_type": "comment_resolution_matrix",
+      "artifact_id": "resolution-run-example",
+      "artifact_version": "1.0.0",
+      "contract_version": "1.0.0",
+      "schema_version": "1.0.0",
+      "standards_source_repo": "spectrum-systems"
     }
-  ]
+  ],
+  "source_files": [],
+  "schema_reference": "spectrum-systems/provenance_record@1.0.0",
+  "hash": "sha256:82a8ed914893616daaebe29a618c586fc2537d342aaadfeffd2f0f5105d68c3f",
+  "description": "Example provenance record artifact.",
+  "payload": {
+    "artifact_type": "provenance_record",
+    "artifact_version": "1.0.0",
+    "schema_version": "1.0.0",
+    "standards_source_repo": "spectrum-systems",
+    "contract_version": "1.0.0",
+    "resolution_run_id": "resolution-run-example",
+    "source_reviewer_comment_set": {
+      "id": "example-reviewer-comment-set",
+      "version": "1.0.0",
+      "contract_version": "1.0.0"
+    },
+    "source_comment_resolution_matrix": {
+      "id": "resolution-run-example",
+      "version": "1.0.0",
+      "schema_version": "1.0.0"
+    },
+    "constitution": {
+      "source_repo": "spectrum-systems",
+      "pinned_version": "1.0.0",
+      "pinned_commit": ""
+    },
+    "generated_at": "2026-03-01T00:10:00Z",
+    "records": [
+      {
+        "record_id": "prov-C-001",
+        "record_type": "comment_resolution",
+        "source_document": "inputs/report_rev1.pdf",
+        "source_revision": "rev1",
+        "resolved_against_revision": "rev1",
+        "workflow_name": "NTIA Comment Resolution Pipeline",
+        "workflow_step": "generate_outputs",
+        "generated_by_system": "SYS-001",
+        "generated_by_repo": "comment-resolution-engine",
+        "generated_by_version": "0.1.0",
+        "prompt_version": "1.0.0",
+        "schema_version": "1.0.0",
+        "provenance_guidance_version": "1.0.0",
+        "error_taxonomy_version": "1.0.0",
+        "derived_from": {
+          "raw_row": {}
+        },
+        "review_status": "Complete",
+        "confidence_score": "",
+        "constitution_source_repo": "spectrum-systems",
+        "constitution_version": "1.0.0",
+        "constitution_commit": "",
+        "rules_profile": "",
+        "rules_version": "",
+        "created_at": "2026-03-01T00:10:00Z",
+        "updated_at": "2026-03-01T00:10:00Z",
+        "generation_mode": "DETERMINISTIC_PIPELINE"
+      }
+    ],
+    "artifact_id": "resolution-run-example"
+  }
 }
