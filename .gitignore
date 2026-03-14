@@ -12,6 +12,7 @@ htmlcov/
 outputs/*.xlsx
 !outputs/.gitkeep
 
-# Keep repo text-only for examples/templates
+# Keep repo text-only for examples/templates (allow named sample files)
 examples/*.xlsx
+!examples/sample_matrix.xlsx
 templates/*.xlsx
