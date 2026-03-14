@@ -1,0 +1,35 @@
+[
+  {
+    "comment_id": "D-001",
+    "disposition": "Partial Accept",
+    "resolution_text": "The comment is acknowledged; clarifications will be added while maintaining existing analytical framing. Results communicate analytical behavior and assumptions; they do not create policy requirements.",
+    "validation_status": "WARN",
+    "validation_code": "TECH_COMMENT_NO_CONTEXT",
+    "matched_rule_types": [],
+    "rule_id": "",
+    "rule_version": null,
+    "rules_profile": ""
+  },
+  {
+    "comment_id": "D-002",
+    "disposition": "Accept",
+    "resolution_text": "The report text will be updated to address the comment. Terminology is aligned to maintain internal consistency and avoid implying regulatory positions that are not intended.",
+    "validation_status": "PASS",
+    "validation_code": "",
+    "matched_rule_types": [],
+    "rule_id": "",
+    "rule_version": null,
+    "rules_profile": ""
+  },
+  {
+    "comment_id": "D-003",
+    "disposition": "Accept",
+    "resolution_text": "The report text will be updated to address the comment. Addresses cluster theme: Typo definition middle / typo definition / mile infrastructure",
+    "validation_status": "PASS",
+    "validation_code": "",
+    "matched_rule_types": [],
+    "rule_id": "",
+    "rule_version": null,
+    "rules_profile": ""
+  }
+]

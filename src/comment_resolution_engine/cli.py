@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
+from .packaged_outputs import package_outputs
 from .pipeline import run_pipeline
+from .pipeline_result import PipelineRunResult
 from .errors import CREError
 from .rules import Strictness, load_rule_pack
 from .contracts.loader import load_constitution
@@ -46,6 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rules-version", required=False, help="Optional rules version identifier to record in provenance.")
     parser.add_argument("--rules-strict", action="store_true", help="Validate rules in strict mode (unknown keys become errors).")
     parser.add_argument("--validate-rules", action="store_true", help="Validate a rules directory and exit.")
+    parser.add_argument("--output-dir", required=False, help="Optional root directory for packaged outputs.")
+    parser.add_argument("--emit-run-manifest", action="store_true", help="Emit run_manifest.json and summary.json for automation workflows.")
     return parser
 
 
@@ -58,6 +63,8 @@ def main() -> None:
         constitution_report_path = base.with_name(base.stem + "_constitution_report.json")
     if not constitution_report_path and args.check_constitution:
         constitution_report_path = Path("outputs/constitution_report.json")
+    package_requested = bool(args.emit_run_manifest or args.output_dir)
+    packaged_output_dir = Path(args.output_dir) if args.output_dir else None
     try:
         is_pipeline_run = not args.validate_rules and not args.check_constitution
         comments_path = args.reviewer_comment_set or args.comments
@@ -89,6 +96,9 @@ def main() -> None:
                     category = warning.get("category", "WARNING")
                     print(f"- [{category}] {file} {rid} {field} {message}".strip())
             sys.exit(0)
+        if package_requested and constitution_report_path is None and args.output:
+            target_dir = packaged_output_dir or Path(args.output).parent
+            constitution_report_path = Path(target_dir) / "artifacts" / "constitution_report.json"
         constitution_context, constitution_report = load_constitution(
             manifest_path=args.constitution or DEFAULT_CONSTITUTION_PATH,
             compatibility_mode=args.compatibility_mode,
@@ -102,6 +112,7 @@ def main() -> None:
             status = "compatible" if constitution_report.compatible else "incompatible"
             print(f"Constitution check {status}. Report written to {constitution_report_path}.")
             sys.exit(0)
+        packaged_output_dir = packaged_output_dir or (Path(args.output).parent if args.output else None)
         df = run_pipeline(
             comments_path=comments_path,
             report_path=args.report,
@@ -130,11 +141,36 @@ def main() -> None:
             constitution_context=constitution_context,
             skip_constitution_check=True,
             include_metadata_columns=args.include_metadata_columns,
+            return_artifacts=package_requested,
         )
     except CREError as exc:
-        print(f"ERROR {exc}")
+        if package_requested:
+            print(json.dumps({"status": "error", "message": str(exc)}))
+        else:
+            print(f"ERROR {exc}")
         sys.exit(1)
-    print(f"Wrote {len(df)} rows to {args.output}")
+    if isinstance(df, PipelineRunResult):
+        result = df
+        output_df = df.output_df
+    else:
+        result = None
+        output_df = df
+
+    if package_requested and result is not None:
+        final_output_dir = packaged_output_dir or Path(args.output).parent
+        package_result = package_outputs(result, final_output_dir, emit_manifest=True)
+        payload = {
+            "status": "success",
+            "rows": len(output_df),
+            "output_path": str(args.output),
+            "output_dir": str(final_output_dir),
+            "run_manifest": str(package_result["layout"].manifest_path) if package_result.get("manifest") else None,
+            "summary": str(package_result["layout"].summary_path),
+            "artifacts": {k: str(v) for k, v in package_result["outputs"].items()},
+        }
+        print(json.dumps(payload, separators=(",", ":")))
+    else:
+        print(f"Wrote {len(output_df)} rows to {args.output}")
 
 
 if __name__ == "__main__":

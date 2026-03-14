@@ -29,6 +29,15 @@ python -m comment_resolution_engine.cli \
     --output /tmp/test_adjudicated.xlsx
 ```
 
+## Stable execution contract
+
+- **One command:** package the run for automation with `python -m comment_resolution_engine.cli --reviewer-comment-set <comments.json> --report <paper.pdf> --output <legacy.xlsx> --output-dir outputs/run --emit-run-manifest`.
+- **Required inputs:** reviewer comment set (JSON/YAML) *or* legacy spreadsheet, at least one working paper PDF, optional column map (`--config`), optional ruleset/constitution overrides (`--rules-path`, `--constitution`).
+- **Standard outputs:** a packaged directory with canonical artifacts, legacy workbook, debug payloads, `summary.json`, and `run_manifest.json` (see `docs/output-contract.md` for the schema and file purposes).
+- **Exit behavior:** exit code `0` on success; non-zero on validation/contract/runtime errors. When `--emit-run-manifest` is used, the CLI prints a compact JSON payload (paths to manifest/summary/artifacts) for downstream orchestration.
+- **Run manifest:** captures `run_id`, tool name/version, timestamp, input/output file paths and SHA-256 hashes, constitution + standards manifest hashes, counts summary, and any validation warnings surfaced during the run.
+- A fully packaged example is checked in under `docs/demo/expected/`; see `docs/demo/README.md` for the one-line command.
+
 ### CLI reference
 
 ```

@@ -22,3 +22,6 @@ outputs/*.xlsx
 
 # Keep repo text-only for examples/templates (allow named sample files)
 templates/*.xlsx
+
+# Demo artifacts (packaged outputs)
+!docs/demo/expected/artifacts/legacy_comment_resolution_matrix.xlsx

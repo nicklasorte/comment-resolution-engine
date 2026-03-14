@@ -41,6 +41,7 @@ from .generation import (
     generate_faq,
     top_briefing_points,
 )
+from .pipeline_result import PipelineRunResult
 from .ingest import load_pdf_contexts, read_comment_matrix
 from .models import AnalyzedComment
 from .normalize import normalize_comments
@@ -195,13 +196,28 @@ def run_pipeline(
     skip_constitution_check: bool = False,
     constitution_context: ConstitutionContext | None = None,
     include_metadata_columns: bool = False,
+    return_artifacts: bool = False,
 ):
     import pandas as pd
 
     resolution_run_id = new_resolution_run_id()
     active_constitution = constitution_context or default_constitution_context()
+    constitution_report = None
+    warnings: list[str] = []
+    comments_path = Path(comments_path)
+    output_path = Path(output_path)
+    config_path = Path(config_path) if config_path else None
+    rules_path = Path(rules_path) if rules_path else None
+    constitution_path = Path(constitution_path) if constitution_path else None
+    constitution_report_path = Path(constitution_report_path) if constitution_report_path else None
+    report_paths: list[Path] = []
+    if isinstance(report_path, list):
+        report_paths = [Path(p) for p in report_path]
+    elif report_path:
+        report_paths = [Path(report_path)]
+
     if not skip_constitution_check and constitution_context is None:
-        active_constitution, _ = load_constitution(
+        active_constitution, constitution_report = load_constitution(
             manifest_path=constitution_path or DEFAULT_CONSTITUTION_PATH,
             compatibility_mode=compatibility_mode,
             rules_profile=rules_profile,
@@ -231,6 +247,8 @@ def run_pipeline(
         if rules_path
         else None
     )
+    if rule_pack and getattr(rule_pack, "validation_warnings", None):
+        warnings.extend([w.get("message", "") for w in rule_pack.validation_warnings])
     rule_engine = RuleEngine(rule_pack)
     rules_metadata = rule_pack.to_metadata() if rule_pack else {
         "rules_path": str(rules_path) if rules_path else None,
@@ -238,10 +256,19 @@ def run_pipeline(
         "rules_version": rules_version or "local",
         "rules_loaded_count": 0,
     }
-    pre_pdf_context = {"pdf_count": len(report_path) if isinstance(report_path, list) else (1 if report_path else 0)}
+    input_paths = {
+        "comments": comments_path if reviewer_artifact is None else None,
+        "reviewer_comment_set": comments_path if reviewer_artifact else None,
+        "reports": list(report_paths),
+        "config": config_path,
+        "rules": rules_path,
+        "constitution": constitution_path,
+        "constitution_report": constitution_report_path,
+    }
+    pre_pdf_context = {"pdf_count": len(report_paths)}
     if rule_engine.enabled:
         rule_engine.apply_run_validations(pre_pdf_context)
-    pdf_contexts = load_pdf_contexts(report_path)
+    pdf_contexts = load_pdf_contexts(report_paths)
     default_revision_label, default_revision_context = next(iter(pdf_contexts.items()))
 
     run_context = {
@@ -255,6 +282,14 @@ def run_pipeline(
         "resolution_run_id": resolution_run_id,
         "source_comment_set_id": reviewer_artifact.get("artifact_id") if reviewer_artifact else None,
     }
+    if constitution_report:
+        warnings.extend(
+            [
+                f"{finding.severity}: {finding.code} - {finding.message}"
+                for finding in constitution_report.findings
+                if getattr(finding, "severity", "INFO").upper() != "ERROR"
+            ]
+        )
 
     for record in records:
         if rule_engine.enabled:
@@ -443,12 +478,13 @@ def run_pipeline(
     output_df = reorder_to_canonical(output_df, include_metadata=include_metadata_columns)
     write_resolution_workbook(output_df, output_path, include_metadata=include_metadata_columns)
 
-    base = Path(output_path)
+    base = output_path
     patch_file = Path(patch_output) if patch_output else base.with_name(base.stem + "_patches.json")
     faq_file = Path(faq_output) if faq_output else base.with_name(base.stem + "_faq.md")
     summary_file = Path(summary_output) if summary_output else base.with_name(base.stem + "_section_summary.md")
     briefing_file = Path(briefing_output) if briefing_output else base.with_name(base.stem + "_briefing.md")
     provenance_file = base.with_name(base.stem + "_provenance.json")
+    shared_resolutions_path = base.with_name(base.stem + "_shared_resolutions.json")
 
     _write_json(
         patch_file,
@@ -474,7 +510,7 @@ def run_pipeline(
     )
 
     _write_json(
-        base.with_name(base.stem + "_shared_resolutions.json"),
+        shared_resolutions_path,
         [
             {
                 "master_resolution_id": sr.master_resolution_id,
@@ -508,7 +544,8 @@ def run_pipeline(
         constitution=active_constitution,
     )
     validate_provenance_record_artifact(canonical_provenance)
-    _write_json(base.with_name(base.stem + "_provenance_record.json"), canonical_provenance)
+    canonical_provenance_path = base.with_name(base.stem + "_provenance_record.json")
+    _write_json(canonical_provenance_path, canonical_provenance)
 
     faq_lines = ["# FAQ / Issue Log"]
     for entry in faq_entries:
@@ -537,7 +574,9 @@ def run_pipeline(
     _write_markdown(briefing_file, briefing_lines)
 
     primary_pdf_context = pdf_contexts.get(default_revision_label)
-
+    rev2_sections_path = None
+    rev2_draft_path = None
+    rev2_appendix_path = None
     if draft_rev2 or assemble_rev2:
         rev2_sections_path = Path(rev2_sections_output) if rev2_sections_output else base.with_name(base.stem + "_rev2_sections.json")
         rev2_draft_path = Path(rev2_draft_output) if rev2_draft_output else base.with_name(base.stem + "_rev2_draft.md")
@@ -560,4 +599,54 @@ def run_pipeline(
             _write_markdown(rev2_draft_path, draft_lines)
             _write_markdown(rev2_appendix_path, appendix_lines)
 
-    return output_df
+    output_paths = {
+        "legacy_workbook": output_path,
+        "patches": patch_file,
+        "faq": faq_file,
+        "section_summary": summary_file,
+        "briefing": briefing_file,
+        "provenance_records": provenance_file,
+        "comment_resolution_matrix": canonical_matrix_path,
+        "provenance_record": canonical_provenance_path,
+        "shared_resolutions": shared_resolutions_path,
+    }
+    if constitution_report_path:
+        output_paths["constitution_report"] = constitution_report_path
+    if rev2_sections_path:
+        output_paths["rev2_sections"] = rev2_sections_path
+    if rev2_draft_path:
+        output_paths["rev2_draft"] = rev2_draft_path
+    if rev2_appendix_path:
+        output_paths["rev2_appendix"] = rev2_appendix_path
+
+    result = PipelineRunResult(
+        run_id=resolution_run_id,
+        output_df=output_df,
+        analyzed_comments=analyzed,
+        decisions=decisions,
+        patches=patches,
+        shared_resolutions=shared_resolutions,
+        provenance_records=provenance_records,
+        canonical_matrix=canonical_matrix,
+        canonical_provenance=canonical_provenance,
+        reviewer_artifact=reviewer_artifact,
+        rules_metadata=rules_metadata,
+        constitution=active_constitution,
+        raw_df=raw_df,
+        normalized_df=normalized_df,
+        faq_entries=faq_entries,
+        briefs=briefs,
+        briefing_points=briefing_points,
+        pdf_contexts=pdf_contexts,
+        run_context=run_context,
+        mapping=mapping,
+        output_paths=output_paths,
+        input_paths=input_paths,
+        include_metadata_columns=include_metadata_columns,
+        warnings=[w for w in warnings if w],
+        constitution_report_path=constitution_report_path,
+    )
+
+    if return_artifacts:
+        return result
+    return result.output_df
