@@ -9,12 +9,18 @@ matrix.
 ### Quick start
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
+# Optional: validate dependencies only
+python resolve_comments.py --preflight
+
+# Run the MVP path with the committed sample inputs
 python resolve_comments.py \
     --matrix examples/sample_matrix.xlsx \
     --paper  examples/sample_working_paper.pdf \
-    --output adjudicated_comment_matrix.xlsx
+    --output /tmp/test_adjudicated.xlsx
 ```
 
 ### CLI reference
@@ -25,6 +31,14 @@ python resolve_comments.py \
     --paper   <working_paper.pdf>        # Required: revised working paper PDF
     --output  <adjudicated_matrix.xlsx>  # Optional: output path
                                          #   default: adjudicated_comment_matrix.xlsx
+```
+
+### Smoke test
+
+Validate the MVP pipeline using the committed sample inputs:
+
+```bash
+python -m pytest tests/test_mvp_smoke.py
 ```
 
 ### Input format

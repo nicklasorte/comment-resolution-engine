@@ -10,16 +10,17 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Comment Resolution Engine Contributors"}]
 dependencies = [
-  "pandas>=2.0",
-  "openpyxl>=3.1",
-  "PyYAML>=6.0",
-  "pypdf>=4.0",
-  "scikit-learn>=1.4",
+  "pandas==3.0.1",
+  "openpyxl==3.1.5",
+  "PyYAML==6.0.3",
+  "pypdf==6.8.0",
+  "cryptography==46.0.5",
+  "scikit-learn==1.8.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",
+  "pytest==9.0.2",
 ]
 
 [project.scripts]
