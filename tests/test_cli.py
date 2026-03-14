@@ -49,6 +49,7 @@ def test_cli_parser_accepts_expected_args():
         "v1.2.3",
     ])
     assert args.comments == "in.xlsx"
+    assert args.reviewer_comment_set is None
     assert args.report == ["report_rev1.pdf", "report_rev2.pdf"]
     assert args.output == "out.xlsx"
     assert args.config == "map.yaml"
@@ -73,3 +74,19 @@ def test_cli_parser_accepts_expected_args():
     assert args.rules_version == "v1.2.3"
     assert args.rules_strict is False
     assert args.validate_rules is False
+
+
+def test_cli_parser_accepts_reviewer_comment_set_arg():
+    parser = build_parser()
+    args = parser.parse_args([
+        "--reviewer-comment-set",
+        "review.json",
+        "--report",
+        "report_rev1.pdf",
+        "--output",
+        "out.xlsx",
+    ])
+    assert args.reviewer_comment_set == "review.json"
+    assert args.comments is None
+    assert args.report == ["report_rev1.pdf"]
+    assert args.output == "out.xlsx"

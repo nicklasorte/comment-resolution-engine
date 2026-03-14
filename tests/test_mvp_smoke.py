@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -31,3 +33,45 @@ def test_mvp_cli_smoke(tmp_path):
     assert output_path.exists()
     df = pd.read_excel(output_path)
     assert not df.empty
+
+
+def test_reviewer_comment_set_cli_smoke(tmp_path):
+    output_path = tmp_path / "artifact_output.xlsx"
+    matrix_path = output_path.with_name(output_path.stem + "_comment_resolution_matrix.json")
+    provenance_path = output_path.with_name(output_path.stem + "_provenance_record.json")
+    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")}
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "comment_resolution_engine.cli",
+            "--reviewer-comment-set",
+            "examples/contracts/reviewer_comment_set_example.json",
+            "--report",
+            "examples/sample_working_paper.pdf",
+            "--output",
+            str(output_path),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert output_path.exists()
+    assert matrix_path.exists()
+    assert provenance_path.exists()
+
+    with matrix_path.open() as f:
+        matrix_artifact = json.load(f)
+    with provenance_path.open() as f:
+        provenance_artifact = json.load(f)
+
+    assert matrix_artifact.get("artifact_type") == "comment_resolution_matrix"
+    assert matrix_artifact.get("rows")
+    assert matrix_artifact.get("source_reviewer_comment_set", {}).get("id") == "example-reviewer-comment-set"
+
+    assert provenance_artifact.get("artifact_type") == "provenance_record"
+    assert provenance_artifact.get("records")

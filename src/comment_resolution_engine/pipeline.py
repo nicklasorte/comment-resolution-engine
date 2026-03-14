@@ -238,7 +238,6 @@ def run_pipeline(
         "rules_version": rules_version or "local",
         "rules_loaded_count": 0,
     }
-    records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
     pre_pdf_context = {"pdf_count": len(report_path) if isinstance(report_path, list) else (1 if report_path else 0)}
     if rule_engine.enabled:
         rule_engine.apply_run_validations(pre_pdf_context)
@@ -262,6 +261,8 @@ def run_pipeline(
             rule_engine.apply_canonical_rules(record, run_context=run_context)
         requested_version = (record.report_version or record.revision or "").strip()
         match = _match_report_version_label(requested_version, pdf_contexts) if requested_version else None
+        if not match and record.revision and record.revision != requested_version:
+            match = _match_report_version_label(record.revision, pdf_contexts)
         if match:
             revision_key, pdf_context = match
         elif not requested_version:
