@@ -7,6 +7,7 @@ from typing import Any, Dict
 
 from .contracts import (
     ARCHITECTURE_REPO,
+    ConstitutionContext,
     DEFAULT_GENERATION_MODE,
     DEFAULT_WORKFLOW_NAME,
     DEFAULT_WORKFLOW_STEP,
@@ -49,8 +50,13 @@ class ProvenanceRecord:
     derived_from: Any
     review_status: str
     confidence_score: str
-    created_at: str
-    updated_at: str
+    constitution_source_repo: str = ARCHITECTURE_REPO
+    constitution_version: str = SPEC_VERSION
+    constitution_commit: str = ""
+    rules_profile: str = ""
+    rules_version: str = ""
+    created_at: str = ""
+    updated_at: str = ""
     generation_mode: str = DEFAULT_GENERATION_MODE
 
     def asdict(self) -> Dict[str, Any]:
@@ -70,8 +76,18 @@ def build_provenance_record(
     workflow_name: str = DEFAULT_WORKFLOW_NAME,
     workflow_step: str = DEFAULT_WORKFLOW_STEP,
     generation_mode: str = DEFAULT_GENERATION_MODE,
+    constitution: ConstitutionContext | None = None,
 ) -> ProvenanceRecord:
     now = utcnow_iso()
+    schema_version = constitution.schema_version if constitution else SCHEMA_VERSION
+    provenance_version = constitution.provenance_guidance_version if constitution else PROVENANCE_GUIDANCE_VERSION
+    error_taxonomy_version = constitution.error_taxonomy_version if constitution else ERROR_TAXONOMY_VERSION
+    prompt_version = prompt_version or (constitution.pinned_version if constitution else SPEC_VERSION)
+    rules_profile = constitution.rules_profile if constitution else ""
+    rules_version = constitution.rules_version if constitution else ""
+    constitution_version = constitution.pinned_version if constitution else SPEC_VERSION
+    constitution_commit = constitution.pinned_commit if constitution else ""
+    constitution_source_repo = constitution.source_repo if constitution else ARCHITECTURE_REPO
     return ProvenanceRecord(
         record_id=str(record_id),
         record_type=record_type,
@@ -83,10 +99,15 @@ def build_provenance_record(
         generated_by_system=IMPLEMENTED_SYSTEM_ID,
         generated_by_repo=IMPLEMENTATION_REPO,
         generated_by_version=_package_version(),
-        prompt_version=prompt_version or SPEC_VERSION,
-        schema_version=SCHEMA_VERSION,
-        provenance_guidance_version=PROVENANCE_GUIDANCE_VERSION,
-        error_taxonomy_version=ERROR_TAXONOMY_VERSION,
+        prompt_version=prompt_version,
+        schema_version=schema_version,
+        provenance_guidance_version=provenance_version,
+        error_taxonomy_version=error_taxonomy_version,
+        constitution_source_repo=constitution_source_repo,
+        constitution_version=constitution_version or "",
+        constitution_commit=constitution_commit or "",
+        rules_profile=rules_profile or "",
+        rules_version=rules_version or "",
         derived_from=derived_from,
         review_status=review_status,
         confidence_score=confidence_score,

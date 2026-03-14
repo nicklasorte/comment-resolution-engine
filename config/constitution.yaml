@@ -1,0 +1,28 @@
+source_repo: spectrum-systems
+system_id: SYS-001
+pinned_version: "1.0.0"
+schema_refs:
+  - id: system-spec
+    path: ../docs/system-spec-comment-resolution-engine.md
+    version: "1.0.0"
+rules_profile_refs:
+  - id: comment-resolution-default
+    profile: default
+    path: ../src/comment_resolution_engine/rules
+    version: "1.0.0"
+prompt_refs:
+  - id: resolution_engine_prompt
+    path: ../prompts/resolution_engine.md
+    version: "1.0.0"
+  - id: codex_run_prompt
+    path: ../prompts/codex_run_prompt.md
+    version: "1.0.0"
+provenance_standard_ref:
+  id: provenance-guidance
+  path: ../docs/provenance-implementation-guidance.md
+  version: "1.0.0"
+error_taxonomy_ref:
+  id: error-taxonomy
+  path: ../docs/error-taxonomy.md
+  version: "1.0.0"
+compatibility_mode: strict
