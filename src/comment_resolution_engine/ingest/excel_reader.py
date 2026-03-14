@@ -6,15 +6,17 @@ from typing import Iterable, List
 from ..errors import CREError, ErrorCategory
 
 from ..config import ColumnMappingConfig, normalize_header
-from ..spreadsheet_contract import CANONICAL_INTERNAL_ORDER, require_canonical_headers
+from ..spreadsheet_contract import (
+    CANONICAL_INTERNAL_ORDER,
+    MATRIX_CONTRACT,
+    OPTIONAL_INPUT_KEYS,
+    require_canonical_headers,
+    validate_completed_rows,
+)
 from ..models import CommentRecord
 
 
-OPTIONAL_COLUMNS = [
-    "revision",
-    "line_number",
-    "wg_chain_comments",
-]
+OPTIONAL_COLUMNS = OPTIONAL_INPUT_KEYS
 
 
 def _require_pandas():
@@ -63,11 +65,14 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
         df = pd.read_excel(path_str)
     lookup = _build_header_lookup(df.columns.tolist())
     require_canonical_headers(df.columns.tolist())
+    validate_completed_rows(df)
 
     records: List[CommentRecord] = []
     for idx, row in df.iterrows():
         data = {canonical: _extract_value(row, lookup, mapping, canonical) for canonical in [*CANONICAL_INTERNAL_ORDER, *OPTIONAL_COLUMNS]}
         revision_value = _clean_str(data.get("revision")) or _clean_str(data.get("report_version"))
+        disposition_value = _clean_str(data.get("comment_disposition") or data.get("disposition"))
+        status_value = _clean_str(data.get("status"))
 
         records.append(
             CommentRecord(
@@ -83,8 +88,9 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
                 agency_notes=_clean_str(data.get("agency_notes")),
                 agency_suggested_text=_clean_str(data.get("agency_suggested_text")),
                 wg_chain_comments=_clean_str(data.get("wg_chain_comments")),
-                comment_disposition=_clean_str(data.get("comment_disposition") or data.get("disposition")),
+                comment_disposition=disposition_value,
                 resolution=_clean_str(data.get("resolution")),
+                review_status=MATRIX_CONTRACT.row_status(status_value, disposition_value),
                 raw_row=row.to_dict(),
             )
         )

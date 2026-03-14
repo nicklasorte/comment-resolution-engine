@@ -14,6 +14,7 @@ from comment_resolution_engine.contracts.artifacts import (
 )
 from comment_resolution_engine.errors import CREError
 from comment_resolution_engine.pipeline import run_pipeline
+from comment_resolution_engine.spreadsheet_contract import MATRIX_CONTRACT
 
 pd = pytest.importorskip("pandas")
 
@@ -98,3 +99,9 @@ def test_missing_required_field_raises():
     }
     with pytest.raises(CREError):
         validate_comment_resolution_matrix_artifact(bad_matrix)
+
+
+def test_matrix_contract_yaml_loaded():
+    assert "Comment Number" in MATRIX_CONTRACT.required_headers
+    assert set(MATRIX_CONTRACT.generated_headers) == {"NTIA Comments", "Comment Disposition", "Resolution"}
+    assert MATRIX_CONTRACT.completion_values

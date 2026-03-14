@@ -6,47 +6,21 @@ from typing import TYPE_CHECKING
 from .errors import CREError, ErrorCategory
 
 from .config import ColumnMappingConfig, normalize_header
-from .spreadsheet_contract import CANONICAL_INTERNAL_ORDER, CANONICAL_SPREADSHEET_HEADERS, require_canonical_headers, reorder_to_canonical
+from .spreadsheet_contract import (
+    CANONICAL_INTERNAL_ORDER,
+    CANONICAL_SPREADSHEET_HEADERS,
+    MATRIX_CONTRACT,
+    METADATA_KEYS,
+    OPTIONAL_INPUT_KEYS,
+    require_canonical_headers,
+    reorder_to_canonical,
+    validate_completed_rows,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
 
-OPTIONAL_INTERNAL_COLUMNS = [
-    "revision",
-    "resolved_against_revision",
-    "line_number",
-    "wg_chain_comments",
-    "status",
-    "disposition",
-    "report_context",
-    "resolution_task",
-    "generation_mode",
-    "rule_id",
-    "rule_source",
-    "rule_version",
-    "rules_profile",
-    "rules_version",
-    "matched_rule_types",
-    "review_status",
-    "confidence_score",
-    "provenance_record_id",
-    "comment_cluster_id",
-    "intent_classification",
-    "section_group",
-    "heat_level",
-    "validation_status",
-    "validation_notes",
-    "validation_code",
-    "patch_text",
-    "patch_source",
-    "patch_confidence",
-    "resolution_basis",
-    "context_confidence",
-    "cluster_label",
-    "cluster_size",
-    "shared_resolution_id",
-    "canonical_term_used",
-]
+OPTIONAL_INTERNAL_COLUMNS = list(dict.fromkeys([*OPTIONAL_INPUT_KEYS, *METADATA_KEYS]))
 
 
 def _require_pandas():
@@ -74,6 +48,7 @@ def _build_header_lookup(columns: list[str]) -> dict[str, str]:
 def normalize_comment_matrix(df: "pd.DataFrame", mapping: ColumnMappingConfig) -> "pd.DataFrame":
     pd = _require_pandas()
     require_canonical_headers(df.columns.tolist())
+    validate_completed_rows(df)
     lookup = _build_header_lookup(df.columns.tolist())
     normalized = {}
 

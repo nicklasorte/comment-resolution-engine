@@ -1,0 +1,119 @@
+version: "1.0.0"
+normalized_header_rule: normalize_header
+headers:
+  required:
+    Comment Number: comment_number
+    Reviewer Initials: reviewer_initials
+    Agency: agency
+    Report Version: report_version
+    Section: section
+    Page: page
+    Line: line
+    "Comment Type: Editorial/Grammar, Clarification, Technical": comment_type
+    Agency Notes: agency_notes
+    Agency Suggested Text Change: agency_suggested_text
+    NTIA Comments: ntia_comments
+    Comment Disposition: comment_disposition
+    Resolution: resolution
+  optional:
+    Status: status
+    WG Chain Comments: wg_chain_comments
+    Revision: revision
+    Line Number: line_number
+  metadata:
+    Revision: revision
+    Resolved Against Revision: resolved_against_revision
+    Report Context: report_context
+    Resolution Task: resolution_task
+    Generation Mode: generation_mode
+    Rule Id: rule_id
+    Rule Source: rule_source
+    Rule Version: rule_version
+    Rules Profile: rules_profile
+    Rules Version: rules_version
+    Matched Rule Types: matched_rule_types
+    Review Status: review_status
+    Confidence Score: confidence_score
+    Provenance Record Id: provenance_record_id
+    Comment Cluster Id: comment_cluster_id
+    Intent Classification: intent_classification
+    Section Group: section_group
+    Heat Level: heat_level
+    Validation Status: validation_status
+    Validation Notes: validation_notes
+    Validation Code: validation_code
+    Patch Text: patch_text
+    Patch Source: patch_source
+    Patch Confidence: patch_confidence
+    Resolution Basis: resolution_basis
+    Context Confidence: context_confidence
+    Cluster Label: cluster_label
+    Cluster Size: cluster_size
+    Shared Resolution Id: shared_resolution_id
+    Canonical Term Used: canonical_term_used
+generated_headers:
+  - NTIA Comments
+  - Comment Disposition
+  - Resolution
+order:
+  base:
+    - Comment Number
+    - Reviewer Initials
+    - Agency
+    - Report Version
+    - Section
+    - Page
+    - Line
+    - "Comment Type: Editorial/Grammar, Clarification, Technical"
+    - Agency Notes
+    - Agency Suggested Text Change
+    - NTIA Comments
+    - Comment Disposition
+    - Resolution
+  optional:
+    - Status
+    - WG Chain Comments
+    - Revision
+    - Line Number
+  metadata:
+    - Revision
+    - Resolved Against Revision
+    - WG Chain Comments
+    - Report Context
+    - Resolution Task
+    - Generation Mode
+    - Rule Id
+    - Rule Source
+    - Rule Version
+    - Rules Profile
+    - Rules Version
+    - Matched Rule Types
+    - Review Status
+    - Confidence Score
+    - Provenance Record Id
+    - Comment Cluster Id
+    - Intent Classification
+    - Section Group
+    - Heat Level
+    - Validation Status
+    - Validation Notes
+    - Validation Code
+    - Patch Text
+    - Patch Source
+    - Patch Confidence
+    - Resolution Basis
+    - Context Confidence
+    - Cluster Label
+    - Cluster Size
+    - Shared Resolution Id
+    - Canonical Term Used
+completion_rules:
+  status_header: Status
+  disposition_header: Comment Disposition
+  resolution_header: Resolution
+  completed_values:
+    - complete
+    - completed
+    - closed
+    - resolved
+    - done
