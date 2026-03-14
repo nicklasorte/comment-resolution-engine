@@ -44,7 +44,7 @@ python -m pytest tests/test_mvp_smoke.py
 ### Input format
 
 **`--matrix`** — Excel (`.xlsx`) or CSV spreadsheet that **must** contain the
-canonical headers in any order:
+canonical headers in any order (output is always written in deterministic contract order):
 
 | Column | Description |
 |--------|-------------|
@@ -62,9 +62,17 @@ canonical headers in any order:
 | Comment Disposition | *(populated by the script)* Adjudication outcome |
 | Resolution | *(populated by the script)* Response text |
 
-An optional **`Status`** column may also be present. Rows where `Status`
-equals `completed`, `done`, `closed`, or `resolved` (case-insensitive) are
-treated as already resolved and are not re-adjudicated.
+Allowed optional headers (preserved when present, appended after the canonical set): `Status`, `WG Chain Comments`,
+`Revision`, `Line Number`.
+
+Completed-row rules: if `Status` or `Comment Disposition` contains `complete`,
+`completed`, `closed`, `resolved`, or `done`, the row must already include both
+`Comment Disposition` and `Resolution` text. Otherwise the run fails fast with a
+clear validation error.
+
+Machine-readable contract: `config/contracts/matrix_contract.yaml` declares the
+required headers, optional/metadata headers, generated columns, column order,
+and completion rules used by the engine and tests.
 
 **`--paper`** — PDF of the revised working paper. Text is extracted to supply
 context for generating responses.
@@ -81,8 +89,18 @@ A single Excel workbook written to `--output` (default:
 
 The output **preserves**:
 - all original rows
-- the canonical column order
-- the exact canonical header names
+- the canonical header names
+- deterministic column ordering:
+  - base order: Comment Number, Reviewer Initials, Agency, Report Version, Section, Page, Line,
+    Comment Type: Editorial/Grammar, Clarification, Technical, Agency Notes, Agency Suggested Text Change,
+    NTIA Comments, Comment Disposition, Resolution
+  - optional (when present): Status, WG Chain Comments, Revision, Line Number
+  - metadata (only when `--include-metadata-columns` is used): Revision, Resolved Against Revision,
+    WG Chain Comments, Report Context, Resolution Task, Generation Mode, Rule Id, Rule Source, Rule Version,
+    Rules Profile, Rules Version, Matched Rule Types, Review Status, Confidence Score, Provenance Record Id,
+    Comment Cluster Id, Intent Classification, Section Group, Heat Level, Validation Status, Validation Notes,
+    Validation Code, Patch Text, Patch Source, Patch Confidence, Resolution Basis, Context Confidence,
+    Cluster Label, Cluster Size, Shared Resolution Id, Canonical Term Used
 
 The three resolution columns are populated as follows:
 
@@ -156,22 +174,14 @@ Constitution alignment:
 - Surface `validation_status` and `validation_notes` in the matrix.
 
 ## Canonical MVP spreadsheet contract
-The human-facing spreadsheet uses these headers in this exact order (preserved on import and export):
-1. Comment Number
-2. Reviewer Initials
-3. Agency
-4. Report Version
-5. Section
-6. Page
-7. Line
-8. Comment Type: Editorial/Grammar, Clarification, Technical
-9. Agency Notes
-10. Agency Suggested Text Change
-11. NTIA Comments
-12. Comment Disposition
-13. Resolution
-
-Internally, these map to stable keys (`comment_number`, `reviewer_initials`, `agency`, `report_version`, `section`, `page`, `line`, `comment_type`, `agency_notes`, `agency_suggested_text`, `ntia_comments`, `comment_disposition`, `resolution`). Spreadsheet I/O preserves the exact headers and ordering above; machine metadata stays out of the visible matrix unless explicitly enabled.
+The governed contract is declared in `config/contracts/matrix_contract.yaml` and enforced at ingest, normalization, and
+workbook export. Required headers (always present on ingest and output): Comment Number, Reviewer Initials, Agency,
+Report Version, Section, Page, Line, Comment Type: Editorial/Grammar, Clarification, Technical, Agency Notes,
+Agency Suggested Text Change, NTIA Comments, Comment Disposition, Resolution. Optional headers (preserved in output
+when present): Status, WG Chain Comments, Revision, Line Number. Generated columns: NTIA Comments, Comment
+Disposition, Resolution (plus the metadata set when `--include-metadata-columns` is used). Duplicate canonical headers,
+missing required headers, completed rows lacking disposition/resolution, or metadata collisions with the output set
+fail fast with `SCHEMA_ERROR`/`VALIDATION_ERROR`.
 
 ## Column Semantics
 - **Agency Notes**: Primary statement of the reviewer’s concern.

@@ -29,7 +29,7 @@ from .contracts.loader import load_constitution
 from .config import load_column_mapping
 from .excel_io import write_resolution_workbook
 from .errors import CREError, ErrorCategory
-from .spreadsheet_contract import reorder_to_canonical
+from .spreadsheet_contract import MATRIX_CONTRACT, reorder_to_canonical
 from .generation import (
     build_patch_records,
     build_resolution_decision,
@@ -50,9 +50,8 @@ from .validation import validate_resolution
 from .validation.rev2_validator import validate_section_rewrite
 
 
-def _row_status(status: str) -> str:
-    status_text = (status or "").strip().lower()
-    return "Complete" if status_text in {"complete", "completed", "closed", "resolved", "done"} else "Draft"
+def _row_status(status: str, disposition: str | None = None) -> str:
+    return MATRIX_CONTRACT.row_status(status, disposition or "")
 
 
 def _resolution_task(comment: AnalyzedComment, disposition: str) -> str:
@@ -133,7 +132,7 @@ def _provenance_for_comment(comment: AnalyzedComment, pdf_contexts, decision, ru
     resolved_revision = comment.resolved_against_revision or comment.revision
     context = pdf_contexts.get(resolved_revision) or pdf_contexts.get(comment.revision)
     source_document = comment.source_document or (context.source_path if context else "")
-    review_status = comment.review_status or decision.validation_status or _row_status(decision.validation_status)
+    review_status = comment.review_status or decision.validation_status or _row_status(decision.validation_status, comment.comment_disposition)
     confidence_score = comment.confidence_score or decision.patch_confidence
     record_id = comment.provenance_record_id or f"prov-{comment.id}"
 
@@ -280,7 +279,7 @@ def run_pipeline(
         record.resolved_against_revision = revision_key
         record.source_document = pdf_context.source_path
         record.generation_mode = record.generation_mode or DEFAULT_GENERATION_MODE
-        record.review_status = record.review_status or _row_status(record.comment_disposition)
+        record.review_status = record.review_status or _row_status(record.review_status, record.comment_disposition)
 
     normalized = normalize_comments(records, pdf_contexts)
     analyzed = _hydrate_analyzed_comments(normalized)
@@ -389,6 +388,7 @@ def run_pipeline(
     briefing_points = top_briefing_points(briefs)
 
     output_df = raw_df.copy()
+    MATRIX_CONTRACT.validate_collisions(raw_df.columns, include_metadata=include_metadata_columns)
 
     # Canonical MVP spreadsheet fields (always included)
     _set_column(output_df, mapping, "comment_number", [c.id for c in analyzed], always_override=False)
