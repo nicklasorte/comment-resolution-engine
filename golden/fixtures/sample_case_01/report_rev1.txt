@@ -1,0 +1,13 @@
+1 Introduction heading text
+2 Data summary section addresses assumption with line numbers
+3 Additional context line
+4 Supporting sentence about data assumptions
+5 Placeholder line for section lead-in
+6 Placeholder line for methodology
+7 Placeholder line for clarification
+8 Placeholder line for references
+9 Placeholder line for appendix note
+10 Placeholder line for additional detail
+11 Placeholder line for figures description
+12 Updated data are reflected in section 2.1 with calibration details.
+13 Placeholder closing line
