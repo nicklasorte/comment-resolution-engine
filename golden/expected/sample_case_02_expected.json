@@ -1,0 +1,56 @@
+{
+  "case_id": "sample_case_02",
+  "inputs": {
+    "comments_path": "fixtures/sample_case_02/comments.csv",
+    "reports": [
+      "fixtures/sample_case_02/report_rev1.txt"
+    ],
+    "config_path": null,
+    "rules_path": null,
+    "rules_profile": null,
+    "rules_version": null
+  },
+  "expectations": {
+    "comments": {
+      "1": {
+        "disposition": "Partial Accept",
+        "intent": "TECHNICAL_CHALLENGE",
+        "section_group": "3.1",
+        "requires_context": true,
+        "requires_human_review": true,
+        "require_resolution": true,
+        "require_ntia_comment": true,
+        "validation_status_min": "WARN",
+        "provenance_fields": [
+          "record_id",
+          "source_document",
+          "resolved_against_revision",
+          "workflow_name",
+          "workflow_step",
+          "generation_mode"
+        ]
+      },
+      "2": {
+        "disposition": "Accept",
+        "intent": "REQUEST_CLARIFICATION",
+        "section_group": "4.2",
+        "requires_context": false,
+        "requires_human_review": false,
+        "require_resolution": true,
+        "require_ntia_comment": true,
+        "validation_status_min": "PASS",
+        "provenance_fields": [
+          "record_id",
+          "source_document",
+          "resolved_against_revision",
+          "workflow_name",
+          "workflow_step"
+        ]
+      }
+    },
+    "section_heatmap": {
+      "3.1": "LOW",
+      "4.2": "LOW"
+    }
+  }
+}
