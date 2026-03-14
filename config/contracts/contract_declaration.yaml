@@ -1,0 +1,17 @@
+repo_role: engine_repo
+contract_mode: consume_and_produce
+standards_source_repo: spectrum-systems
+standards_compatibility_target: SYS-001
+supported_contract_versions:
+  reviewer_comment_set: "1.0.0"
+  comment_resolution_matrix: "1.0.0"
+  provenance_record: "1.0.0"
+consumed_artifact_types:
+  - reviewer_comment_set
+  - standards_manifest
+produced_artifact_types:
+  - comment_resolution_matrix
+  - provenance_record
+notes: |
+  comment-resolution-engine is contract-aware and defers to spectrum-systems for canonical schemas.
+  Local adapters exist only to load legacy matrices; canonical artifacts should remain governed upstream.

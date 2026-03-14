@@ -1,0 +1,41 @@
+{
+  "artifact_type": "reviewer_comment_set",
+  "artifact_id": "example-reviewer-comment-set",
+  "artifact_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "standards_source_repo": "spectrum-systems",
+  "contract_version": "1.0.0",
+  "produced_by": "working-paper-review-engine",
+  "generated_at": "2026-03-01T00:00:00Z",
+  "comments": [
+    {
+      "comment_id": "C-001",
+      "reviewer_initials": "AB",
+      "agency": "Agency A",
+      "revision": "rev1",
+      "report_version": "v1.0",
+      "section": "1.1",
+      "page": 2,
+      "line": 12,
+      "comment_type": "Technical",
+      "comment_text": "Clarify the scope of the methodology and its limitations.",
+      "suggested_text": "Add a paragraph explaining the limitations of the sampling approach.",
+      "wg_chain_comments": "WG noted this overlaps with scope section.",
+      "status": "Draft"
+    },
+    {
+      "comment_id": "C-002",
+      "reviewer_initials": "CD",
+      "agency": "Agency B",
+      "revision": "rev1",
+      "report_version": "v1.0",
+      "section": "2.3",
+      "page": 5,
+      "line": 48,
+      "comment_type": "Clarification",
+      "comment_text": "Please align terminology with the glossary definition of broadband service.",
+      "suggested_text": "Use the glossary wording for broadband service.",
+      "status": "Draft"
+    }
+  ]
+}

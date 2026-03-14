@@ -6,6 +6,11 @@
 
 ---
 
+## Contract and interoperability stance
+- comment-resolution-engine is an engine_repo that consumes canonical `reviewer_comment_set` artifacts from spectrum-systems/working-paper-review-engine and produces canonical `comment_resolution_matrix` plus `provenance_record` artifacts.
+- Canonical schemas are governed by spectrum-systems; local adapters exist only to ingest legacy spreadsheets without redefining upstream contracts.
+- Interoperability and traceability depend on contract validation at the ingest boundary and on emitting provenance-linked resolution matrices for downstream reporting.
+
 ## 1. Rule Engine Design
 
 ### 1.1 `_precedence_rank` is dead metadata

@@ -17,6 +17,7 @@ Current integration behavior:
 - Disposition rules inform disposition/notes/patch templates when matches are found.
 - Validation rules run before local validation, blocking runs when missing PDFs or revisions, and contributing rule provenance when applicable.
 - Drafting rules post-process generated resolution/NTIA text (e.g., revision lineage, review callouts) after validation.
+- Canonical contract artifacts are enforced at the boundary: `reviewer_comment_set` is validated on ingest, and the engine emits `comment_resolution_matrix` plus `provenance_record` artifacts that align with the spectrum-systems contract definitions.
 - Before running the pipeline, validate spectrum-systems rule edits with `python -m comment_resolution_engine.cli --validate-rules --rules-path ../spectrum-systems/rules/comment-resolution --rules-strict` to catch schema or enum regressions early.
 
 Fallback behavior:
