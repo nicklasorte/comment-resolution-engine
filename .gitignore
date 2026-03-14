@@ -9,10 +9,16 @@ venv/
 htmlcov/
 .DS_Store
 *.log
+
+# Generated spreadsheet outputs stay ignored unless explicitly whitelisted
+*.xlsx
+
+# Allow committed MVP sample inputs
+!examples/sample_matrix.xlsx
+!examples/sample_working_paper.pdf
+
 outputs/*.xlsx
 !outputs/.gitkeep
 
 # Keep repo text-only for examples/templates (allow named sample files)
-examples/*.xlsx
-!examples/sample_matrix.xlsx
 templates/*.xlsx

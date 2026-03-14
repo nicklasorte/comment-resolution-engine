@@ -58,6 +58,7 @@ context for generating responses.
 Sample files are provided in `examples/`:
 - `examples/sample_matrix.xlsx` — five-row matrix with representative comments
 - `examples/sample_working_paper.pdf` — working paper text matching the sample comments
+These two files are intentionally tracked (whitelisted in `.gitignore`) as MVP sample inputs; other generated spreadsheets remain ignored by default.
 
 ### Output format
 
