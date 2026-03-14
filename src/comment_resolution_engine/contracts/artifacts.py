@@ -144,18 +144,30 @@ def build_comment_records_from_artifact(artifact: Dict[str, Any], mapping) -> Tu
             CommentRecord(
                 id=str(comment_id),
                 reviewer_initials=comment.get("reviewer_initials", ""),
+                commenter=comment.get("reviewer_initials", ""),
                 agency=comment.get("agency", ""),
+                source_agency=comment.get("agency", ""),
                 revision=comment.get("revision", ""),
                 report_version=comment.get("report_version", ""),
                 section=comment.get("section", ""),
+                target_section=comment.get("section", ""),
                 page=comment.get("page"),
                 line=comment.get("line"),
+                target_page=str(comment.get("page") or ""),
+                target_line=str(comment.get("line") or ""),
                 comment_type=comment.get("comment_type", ""),
+                comment_category=comment.get("comment_type", ""),
                 agency_notes=comment.get("agency_notes", ""),
+                comment_text=comment.get("agency_notes", ""),
                 agency_suggested_text=comment.get("agency_suggested_text", ""),
+                proposed_change=comment.get("agency_suggested_text", ""),
                 wg_chain_comments=comment.get("wg_chain_comments", ""),
                 comment_disposition="",
                 resolution="",
+                response_text="",
+                resolution_summary="",
+                reason_code="",
+                status=comment.get("status", ""),
                 raw_row=comment,
             )
         )
@@ -196,6 +208,8 @@ def build_adapter_artifact(records: Iterable[CommentRecord], source_path: str | 
                 "comment_id": r.id,
                 "reviewer_initials": r.reviewer_initials,
                 "agency": r.agency,
+                "comment_text": r.comment_text,
+                "comment_category": r.comment_category,
                 "revision": r.revision,
                 "report_version": r.report_version,
                 "section": r.section,
@@ -204,8 +218,11 @@ def build_adapter_artifact(records: Iterable[CommentRecord], source_path: str | 
                 "comment_type": r.comment_type,
                 "agency_notes": r.agency_notes,
                 "agency_suggested_text": r.agency_suggested_text,
+                "proposed_change": r.proposed_change,
                 "wg_chain_comments": r.wg_chain_comments,
-                "status": r.review_status,
+                "status": r.status or r.review_status,
+                "resolution_summary": r.resolution_summary,
+                "reason_code": r.reason_code,
                 "provenance": r.provenance,
             }
             for r in records
@@ -269,6 +286,8 @@ def build_comment_resolution_matrix_artifact(
                 "disposition": decision.disposition,
                 "ntia_comment": decision.ntia_comment,
                 "resolution_text": decision.resolution_text,
+                "resolution_summary": decision.resolution_summary or decision.resolution_text,
+                "reason_code": decision.reason_code,
                 "resolution_basis": decision.resolution_basis,
                 "patch_text": decision.patch_text,
                 "patch_source": decision.patch_source,
@@ -325,6 +344,12 @@ def validate_comment_resolution_matrix_artifact(artifact: Dict[str, Any]) -> Dic
         _ensure(row.get("revision_id"), f"Row {idx} missing revision_id.")
         _ensure(row.get("resolution_text"), f"Row {idx} missing resolution_text for comment {row.get('comment_id')}.")
         _ensure(row.get("disposition"), f"Row {idx} missing disposition for comment {row.get('comment_id')}.")
+        if not row.get("reason_code"):
+            row["reason_code"] = "UNSPECIFIED"
+        if not row.get("resolution_summary"):
+            row["resolution_summary"] = row.get("resolution_text", "")
+        _ensure(row.get("reason_code"), f"Row {idx} missing reason_code for comment {row.get('comment_id')}.")
+        _ensure(row.get("resolution_summary"), f"Row {idx} missing resolution_summary for comment {row.get('comment_id')}.")
         trace = row.get("trace") or {}
         _ensure(trace.get("source_comment_id"), f"Row {idx} missing trace.source_comment_id.")
     return artifact

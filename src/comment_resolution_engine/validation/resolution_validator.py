@@ -22,6 +22,12 @@ def validate_resolution(
         if notes_override:
             notes.append(notes_override)
 
+    if decision.disposition.lower().startswith("completed"):
+        decision.validation_code = "|".join(dict.fromkeys(codes))
+        decision.validation_status = status or "PASS"
+        decision.validation_notes = "; ".join(notes)
+        return decision
+
     if decision.disposition == "Accept":
         if not decision.patch_text:
             status = "FAIL" if status in {"PASS", ""} else status
@@ -37,6 +43,11 @@ def validate_resolution(
             status = "WARN" if status == "PASS" else status
             codes.append("EMPTY_PATCH")
             notes.append("Partial accept provided without patch text.")
+
+    if not decision.reason_code:
+        status = status if status in {"FAIL", "needs_review"} else "WARN"
+        codes.append("MISSING_REASON_CODE")
+        notes.append("Reason code is required for traceability.")
 
     if comment.normalized_type == "TECHNICAL":
         if comment.context_confidence in {"NO_CONTEXT_FOUND"}:

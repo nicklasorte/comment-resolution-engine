@@ -23,9 +23,17 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import sys
 from pathlib import Path
 from typing import NoReturn
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from comment_resolution_engine.adjudication import AdjudicationPolicy, PolicyContext  # noqa: E402
+from comment_resolution_engine.errors import CREError, ErrorCategory  # noqa: E402
+
+_POLICY = AdjudicationPolicy()
 
 # ---------------------------------------------------------------------------
 # Dependency helpers
@@ -267,24 +275,50 @@ def _generate_notes(row, disposition: str) -> str:
 def adjudicate_row(
     row,
     status_col: str | None,
-) -> tuple[str, str, str, str]:
+) -> tuple[PolicyDecision, str, str, str]:
     """
     Adjudicate a single comment row.
 
     Returns:
         (disposition, response, revision_reference, notes)
     """
-    if _is_completed(row, status_col):
-        revision_ref = _find_revision_reference(row)
-        # Preserve any existing resolution text; do not generate a new response.
-        existing_resolution = _clean(row.get("Resolution", ""))
-        return "Completed", existing_resolution, revision_ref, ""
-
-    disposition = _determine_disposition(row)
-    response = _generate_response(row, disposition)
     revision_ref = _find_revision_reference(row)
-    notes = _generate_notes(row, disposition)
-    return disposition, response, revision_ref, notes
+    status_value = _clean(row.get(status_col, "")) if status_col else ""
+    disposition_value = _clean(row.get("Comment Disposition", ""))
+    context = PolicyContext(
+        comment_number=_clean(row.get("Comment Number", "")),
+        source_agency=_clean(row.get("Agency", "")) or "Unknown Agency",
+        commenter=_clean(row.get("Reviewer Initials", "")),
+        comment_text=_clean(row.get("Agency Notes", "")),
+        comment_type=_clean(row.get("Comment Type: Editorial/Grammar, Clarification, Technical", "")),
+        proposed_change=_clean(row.get("Agency Suggested Text Change", "")),
+        target_section=_clean(row.get("Section", "")),
+        target_page=_clean(row.get("Page", "")),
+        target_line=_clean(row.get("Line", "")),
+        status=status_value,
+        disposition=disposition_value,
+        resolution=_clean(row.get("Resolution", "")),
+        intent="",
+        resolution_summary=_clean(row.get("NTIA Comments", "")),
+        response_text=_clean(row.get("Resolution", "")),
+    )
+
+    try:
+        policy_decision = _POLICY.decide(context)
+    except CREError as exc:
+        if exc.category == ErrorCategory.VALIDATION_ERROR:
+            print(f"ERROR {exc}")
+            sys.exit(1)
+        raise
+
+    response = policy_decision.response_text or _clean(row.get("Resolution", ""))
+    if policy_decision.preserve_existing_resolution and _clean(row.get("Resolution", "")):
+        response = _clean(row.get("Resolution", ""))
+    if policy_decision.change_description and policy_decision.requires_change and policy_decision.change_description not in response:
+        response = f"{response} Change: {policy_decision.change_description}".strip()
+
+    notes = policy_decision.ntia_comment
+    return policy_decision, response, revision_ref, notes
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +393,7 @@ def write_output(df, output_path: str) -> None:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
-def run(matrix_path: str, paper_path: str, output_path: str) -> None:
+def run(matrix_path: str, paper_path: str, output_path: str, debug_json: str | None = None) -> None:
     preflight_check()
 
     print(f"Loading matrix: {matrix_path}")
@@ -386,18 +420,24 @@ def run(matrix_path: str, paper_path: str, output_path: str) -> None:
     dispositions: list[str] = []
     responses: list[str] = []
     ntia_values: list[str] = []
+    reason_codes: list[str] = []
+    resolution_summaries: list[str] = []
 
     print(f"Adjudicating {len(df)} comment row(s)...")
     for _, row in df.iterrows():
-        disposition, response, revision_ref, notes = adjudicate_row(row, status_col)
-        dispositions.append(disposition)
+        policy_decision, response, revision_ref, notes = adjudicate_row(row, status_col)
+        dispositions.append(policy_decision.disposition)
         responses.append(response)
         ntia_values.append(_format_ntia_comments(revision_ref, notes))
+        reason_codes.append(policy_decision.reason_code)
+        resolution_summaries.append(policy_decision.resolution_summary)
 
     # Write results into the canonical columns
     df["Comment Disposition"] = dispositions
     df["Resolution"] = responses
     df["NTIA Comments"] = ntia_values
+    df["Reason Code"] = reason_codes
+    df["Resolution Summary"] = resolution_summaries
 
     # Re-order: canonical headers first, then any extra columns
     canonical = _canonical_headers()
@@ -407,6 +447,33 @@ def run(matrix_path: str, paper_path: str, output_path: str) -> None:
 
     print(f"Writing output: {output_path}")
     write_output(df, output_path)
+
+    if debug_json:
+        debug_path = Path(debug_json)
+        debug_payload = []
+        for _, row in df.iterrows():
+            debug_payload.append(
+                {
+                    "comment_number": row.get("Comment Number"),
+                    "source_agency": row.get("Agency"),
+                    "commenter": row.get("Reviewer Initials"),
+                    "comment_text": row.get("Agency Notes"),
+                    "comment_type": row.get("Comment Type: Editorial/Grammar, Clarification, Technical"),
+                    "target_section": row.get("Section"),
+                    "target_page": row.get("Page"),
+                    "target_line": row.get("Line"),
+                    "disposition": row.get("Comment Disposition"),
+                    "reason_code": row.get("Reason Code", ""),
+                    "resolution_summary": row.get("Resolution Summary", ""),
+                    "response_text": row.get("Resolution"),
+                    "ntia_comment": row.get("NTIA Comments"),
+                    "target_reference": _find_revision_reference(row),
+                }
+            )
+        debug_path.parent.mkdir(parents=True, exist_ok=True)
+        debug_path.write_text(json.dumps(debug_payload, indent=2))
+        print(f"Wrote debug JSON to {debug_path}")
+
     print(f"Done. Wrote {len(df)} row(s) to {output_path}")
 
 
@@ -437,6 +504,11 @@ def main() -> None:
         action="store_true",
         help="Validate required dependencies and exit.",
     )
+    parser.add_argument(
+        "--emit-debug-json",
+        action="store_true",
+        help="Write adjudication debug JSON alongside the output workbook.",
+    )
     args = parser.parse_args()
 
     if args.preflight:
@@ -450,7 +522,11 @@ def main() -> None:
         print(f"ERROR: Working paper PDF not found: {args.paper}")
         sys.exit(1)
 
-    run(args.matrix, args.paper, args.output)
+    debug_path = None
+    if args.emit_debug_json:
+        base = Path(args.output)
+        debug_path = base.with_name(base.stem + "_debug.json")
+    run(args.matrix, args.paper, args.output, debug_json=str(debug_path) if debug_path else None)
 
 
 if __name__ == "__main__":
