@@ -6,6 +6,7 @@ import pytest
 pd = pytest.importorskip("pandas")
 
 from comment_resolution_engine.pipeline import run_pipeline
+from comment_resolution_engine.spreadsheet_contract import CANONICAL_SPREADSHEET_HEADERS
 
 
 def test_realistic_integration_pipeline(tmp_path: Path):
@@ -13,6 +14,9 @@ def test_realistic_integration_pipeline(tmp_path: Path):
     df = pd.DataFrame(
         {
             "Comment Number": [1, 2, 3, 4],
+            "Report Version": ["rev1", "rev1", "rev1", "rev1"],
+            "Reviewer Initials": ["A", "B", "C", "D"],
+            "Agency": ["NTIA", "NTIA", "NTIA", "NTIA"],
             "Agency Notes": [
                 "Clarify whether the population impact metric is regulatory or just analytical context.",
                 "Population impact metric reads like a rule; please clarify intent.",
@@ -27,8 +31,11 @@ def test_realistic_integration_pipeline(tmp_path: Path):
                 "State that methodology results are informational, not binding.",
             ],
             "Section": ["4.3", "4.4", "5.2", "2.1"],
+            "Page": ["1", "1", "1", "1"],
             "Line": ["12", "13", "45", "8"],
-            "Revision": ["rev1", "rev1", "rev1", "rev1"],
+            "NTIA Comments": ["", "", "", ""],
+            "Comment Disposition": ["", "", "", ""],
+            "Resolution": ["", "", "", ""],
         }
     )
     df.to_excel(comments_path, index=False)
@@ -55,31 +62,9 @@ def test_realistic_integration_pipeline(tmp_path: Path):
         config_path=None,
     )
 
-    required_columns = {
-        "Comment Cluster Id",
-        "Cluster Label",
-        "Cluster Size",
-        "Patch Text",
-        "Patch Source",
-        "Patch Confidence",
-        "Resolution Basis",
-        "Context Confidence",
-        "Shared Resolution Id",
-        "Validation Code",
-        "Validation Status",
-        "Resolution",
-    }
-    assert required_columns.issubset(set(out_df.columns))
-
-    clusters = out_df["Comment Cluster Id"].tolist()
-    assert clusters[0] == clusters[1] != clusters[2]
-
-    shared_ids = [str(val) for val in out_df["Shared Resolution Id"].tolist()]
-    assert shared_ids[0] not in {"", "nan"}
-
-    assert out_df.iloc[0]["Context Confidence"] == "EXACT_LINE_MATCH"
-    assert out_df.iloc[0]["Patch Text"] != ""
-
+    assert list(out_df.columns) == CANONICAL_SPREADSHEET_HEADERS
+    assert out_df.iloc[0]["Resolution"] != ""
+    assert out_df.iloc[0]["NTIA Comments"] != ""
     patch_records = json.loads((tmp_path / "out_patches.json").read_text())
     assert patch_records
     assert "confidence" in patch_records[0]

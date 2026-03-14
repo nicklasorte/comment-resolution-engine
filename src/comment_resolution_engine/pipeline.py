@@ -29,6 +29,7 @@ from .contracts.loader import load_constitution
 from .config import load_column_mapping
 from .excel_io import write_resolution_workbook
 from .errors import CREError, ErrorCategory
+from .spreadsheet_contract import reorder_to_canonical
 from .generation import (
     build_patch_records,
     build_resolution_decision,
@@ -61,6 +62,23 @@ def _resolution_task(comment: AnalyzedComment, disposition: str) -> str:
 
 def _hydrate_analyzed_comments(normalized) -> List[AnalyzedComment]:
     return [AnalyzedComment(**asdict(n)) for n in normalized]
+
+
+def _canonicalize_version_label(label: str) -> str:
+    return "".join(ch.lower() for ch in str(label).strip() if ch.isalnum())
+
+
+def _match_report_version_label(label: str, pdf_contexts):
+    normalized = _canonicalize_version_label(label)
+    for key, ctx in pdf_contexts.items():
+        candidates = {_canonicalize_version_label(key)}
+        candidates.add(_canonicalize_version_label(getattr(ctx, "label", "")))
+        source_path = getattr(ctx, "source_path", "")
+        if source_path:
+            candidates.add(_canonicalize_version_label(Path(source_path).stem))
+        if normalized and normalized in candidates:
+            return key, ctx
+    return None
 
 
 def _set_column(output_df, mapping, canonical_key: str, values: Iterable[str], always_override: bool = False):
@@ -177,6 +195,7 @@ def run_pipeline(
     fail_on_drift: bool = False,
     skip_constitution_check: bool = False,
     constitution_context: ConstitutionContext | None = None,
+    include_metadata_columns: bool = False,
 ):
     import pandas as pd
 
@@ -225,7 +244,7 @@ def run_pipeline(
     if rule_engine.enabled:
         rule_engine.apply_run_validations(pre_pdf_context)
     pdf_contexts = load_pdf_contexts(report_path)
-    default_revision = next(iter(pdf_contexts))
+    default_revision_label, default_revision_context = next(iter(pdf_contexts.items()))
 
     run_context = {
         "pdf_revisions": list(pdf_contexts.keys()),
@@ -242,20 +261,24 @@ def run_pipeline(
     for record in records:
         if rule_engine.enabled:
             rule_engine.apply_canonical_rules(record, run_context=run_context)
-        revision = (record.revision or "").strip().lower()
-        if not revision:
+        requested_version = (record.report_version or record.revision or "").strip()
+        match = _match_report_version_label(requested_version, pdf_contexts) if requested_version else None
+        if match:
+            revision_key, pdf_context = match
+        elif not requested_version:
             if len(pdf_contexts) == 1:
-                revision = default_revision
+                revision_key, pdf_context = default_revision_label, default_revision_context
+                record.report_version = record.report_version or pdf_context.label or revision_key
             else:
-                raise CREError(ErrorCategory.VALIDATION_ERROR, "ERROR: Comments spreadsheet must contain a 'Revision' value for each comment when multiple working paper revisions are uploaded.")
-        if revision not in pdf_contexts:
-            missing_context = {**run_context, "missing_revision": revision}
+                raise CREError(ErrorCategory.VALIDATION_ERROR, "ERROR: Comments spreadsheet must contain a 'Report Version' value for each comment when multiple working paper revisions are uploaded.")
+        else:
+            missing_context = {**run_context, "missing_report_version": requested_version}
             if rule_engine.enabled:
                 rule_engine.apply_run_validations(missing_context)
-            raise CREError(ErrorCategory.PROVENANCE_ERROR, f"ERROR: Comment references revision '{revision}' but no corresponding PDF was uploaded.")
-        record.revision = revision
-        record.resolved_against_revision = revision
-        record.source_document = pdf_contexts[revision].source_path
+            raise CREError(ErrorCategory.PROVENANCE_ERROR, f"ERROR: Comment references report version '{requested_version}' but no corresponding working paper was uploaded.")
+        record.revision = revision_key
+        record.resolved_against_revision = revision_key
+        record.source_document = pdf_context.source_path
         record.generation_mode = record.generation_mode or DEFAULT_GENERATION_MODE
         record.review_status = record.review_status or _row_status(record.comment_disposition)
 
@@ -367,11 +390,10 @@ def run_pipeline(
 
     output_df = raw_df.copy()
 
+    # Canonical MVP spreadsheet fields (always included)
     _set_column(output_df, mapping, "comment_number", [c.id for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "reviewer_initials", [c.reviewer_initials for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "agency", [c.agency for c in analyzed], always_override=False)
-    _set_column(output_df, mapping, "revision", [c.revision for c in analyzed], always_override=False)
-    _set_column(output_df, mapping, "resolved_against_revision", [c.resolved_against_revision for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "report_version", [c.report_version for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "section", [c.section for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "page", [c.page for c in analyzed], always_override=False)
@@ -379,41 +401,46 @@ def run_pipeline(
     _set_column(output_df, mapping, "comment_type", [c.normalized_type for c in analyzed], always_override=True)
     _set_column(output_df, mapping, "agency_notes", [c.agency_notes for c in analyzed], always_override=False)
     _set_column(output_df, mapping, "agency_suggested_text", [c.agency_suggested_text for c in analyzed], always_override=False)
-    _set_column(output_df, mapping, "wg_chain_comments", [c.wg_chain_comments for c in analyzed], always_override=False)
 
     _set_column(output_df, mapping, "ntia_comments", [d.ntia_comment for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "disposition", [d.disposition for d in decisions], always_override=True)
+    _set_column(output_df, mapping, "comment_disposition", [d.disposition for d in decisions], always_override=True)
     _set_column(output_df, mapping, "resolution", [d.resolution_text for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "patch_text", [d.patch_text for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "patch_source", [d.patch_source for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "patch_confidence", [d.patch_confidence for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "resolution_basis", [d.resolution_basis for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "report_context", [c.report_context for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
-    _set_column(output_df, mapping, "generation_mode", [c.generation_mode for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "rule_id", [c.rule_id for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "rule_source", [c.rule_source for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "rule_version", [c.rule_version for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "rules_profile", [c.rules_profile for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "rules_version", [c.rules_version for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "matched_rule_types", ["|".join(c.matched_rule_types or []) for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "review_status", [c.review_status for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "confidence_score", [c.confidence_score for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "provenance_record_id", [c.provenance_record_id for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "comment_cluster_id", [c.cluster_id for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "cluster_label", [c.cluster_label for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "cluster_size", [str(c.cluster_size) for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "intent_classification", [c.intent_classification for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "section_group", [c.section_group for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "heat_level", [c.heat_level for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "validation_status", [d.validation_status for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "validation_code", [d.validation_code for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "validation_notes", [d.validation_notes for d in decisions], always_override=True)
-    _set_column(output_df, mapping, "shared_resolution_id", [c.shared_resolution_id for c in analyzed], always_override=True)
-    _set_column(output_df, mapping, "canonical_term_used", [d.canonical_term_used for d in decisions], always_override=True)
 
-    write_resolution_workbook(output_df, output_path)
+    if include_metadata_columns:
+        _set_column(output_df, mapping, "revision", [c.revision for c in analyzed], always_override=False)
+        _set_column(output_df, mapping, "resolved_against_revision", [c.resolved_against_revision for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "wg_chain_comments", [c.wg_chain_comments for c in analyzed], always_override=False)
+        _set_column(output_df, mapping, "patch_text", [d.patch_text for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "patch_source", [d.patch_source for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "patch_confidence", [d.patch_confidence for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "resolution_basis", [d.resolution_basis for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "report_context", [c.report_context for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
+        _set_column(output_df, mapping, "generation_mode", [c.generation_mode for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "rule_id", [c.rule_id for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "rule_source", [c.rule_source for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "rule_version", [c.rule_version for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "rules_profile", [c.rules_profile for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "rules_version", [c.rules_version for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "matched_rule_types", ["|".join(c.matched_rule_types or []) for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "review_status", [c.review_status for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "confidence_score", [c.confidence_score for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "provenance_record_id", [c.provenance_record_id for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "comment_cluster_id", [c.cluster_id for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "cluster_label", [c.cluster_label for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "cluster_size", [str(c.cluster_size) for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "intent_classification", [c.intent_classification for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "section_group", [c.section_group for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "heat_level", [c.heat_level for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "validation_status", [d.validation_status for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "validation_code", [d.validation_code for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "validation_notes", [d.validation_notes for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "shared_resolution_id", [c.shared_resolution_id for c in analyzed], always_override=True)
+        _set_column(output_df, mapping, "canonical_term_used", [d.canonical_term_used for d in decisions], always_override=True)
+
+    output_df = reorder_to_canonical(output_df, include_metadata=include_metadata_columns)
+    write_resolution_workbook(output_df, output_path, include_metadata=include_metadata_columns)
 
     base = Path(output_path)
     patch_file = Path(patch_output) if patch_output else base.with_name(base.stem + "_patches.json")
@@ -508,7 +535,7 @@ def run_pipeline(
         briefing_lines.append(f"- {point}")
     _write_markdown(briefing_file, briefing_lines)
 
-    primary_pdf_context = pdf_contexts.get(default_revision)
+    primary_pdf_context = pdf_contexts.get(default_revision_label)
 
     if draft_rev2 or assemble_rev2:
         rev2_sections_path = Path(rev2_sections_output) if rev2_sections_output else base.with_name(base.stem + "_rev2_sections.json")

@@ -1,3 +1,3 @@
-Comment Number,Reviewer Initials,Agency,Report Version,Section,Page,Line,"Comment Type: Editorial/Grammar, Clarification, Technical",Agency Notes,Agency Suggested Text Change,Status,Revision
-1,AB,Agency X,Draft,2.1,10,12,Technical,"Technical assumption needs update to reflect new data.","Replace paragraph with updated data summary.",Draft,rev1
-2,CD,Agency Y,Draft,1.1,2,,Editorial/Grammar,"Typo in introduction heading.","Correct heading capitalization.",Open,rev1
+Comment Number,Reviewer Initials,Agency,Report Version,Section,Page,Line,"Comment Type: Editorial/Grammar, Clarification, Technical",Agency Notes,Agency Suggested Text Change,NTIA Comments,Comment Disposition,Resolution,Status,Revision
+1,AB,Agency X,rev1,2.1,10,12,Technical,"Technical assumption needs update to reflect new data.","Replace paragraph with updated data summary.",,,,"Draft",rev1
+2,CD,Agency Y,rev1,1.1,2,,Editorial/Grammar,"Typo in introduction heading.","Correct heading capitalization.",,,,"Open",rev1

@@ -6,30 +6,18 @@ from typing import TYPE_CHECKING
 from .errors import CREError, ErrorCategory
 
 from .config import ColumnMappingConfig, normalize_header
+from .spreadsheet_contract import CANONICAL_INTERNAL_ORDER, CANONICAL_SPREADSHEET_HEADERS, require_canonical_headers, reorder_to_canonical
 
 if TYPE_CHECKING:
     import pandas as pd
 
-CANONICAL_COLUMNS = [
-    "comment_number",
-    "reviewer_initials",
-    "agency",
+OPTIONAL_INTERNAL_COLUMNS = [
     "revision",
     "resolved_against_revision",
-    "report_version",
-    "section",
-    "page",
-    "line",
     "line_number",
-    "comment_type",
-    "agency_notes",
-    "agency_suggested_text",
     "wg_chain_comments",
-    "comment_disposition",
     "status",
-    "ntia_comments",
     "disposition",
-    "resolution",
     "report_context",
     "resolution_task",
     "generation_mode",
@@ -85,10 +73,11 @@ def _build_header_lookup(columns: list[str]) -> dict[str, str]:
 
 def normalize_comment_matrix(df: "pd.DataFrame", mapping: ColumnMappingConfig) -> "pd.DataFrame":
     pd = _require_pandas()
+    require_canonical_headers(df.columns.tolist())
     lookup = _build_header_lookup(df.columns.tolist())
     normalized = {}
 
-    for canonical in CANONICAL_COLUMNS:
+    for canonical in [*CANONICAL_INTERNAL_ORDER, *OPTIONAL_INTERNAL_COLUMNS]:
         raw_column_name = ""
         for variant in mapping.all_variants(canonical):
             if variant in lookup:
@@ -106,12 +95,12 @@ def read_comment_matrix(path: str | Path, mapping: ColumnMappingConfig):
     return normalize_comment_matrix(df, mapping)
 
 
-def write_resolution_workbook(df, output_path: str | Path) -> None:
+def write_resolution_workbook(df, output_path: str | Path, include_metadata: bool = False) -> None:
     load_workbook, Alignment, Font, get_column_letter = _require_openpyxl()
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    ordered = df.copy()
+    ordered = reorder_to_canonical(df.copy(), include_metadata=include_metadata)
     ordered.to_excel(output, index=False)
 
     wb = load_workbook(output)
@@ -123,63 +112,23 @@ def write_resolution_workbook(df, output_path: str | Path) -> None:
         "Comment Number": 16,
         "Reviewer Initials": 16,
         "Agency": 18,
-        "Revision": 12,
-        "Report Version": 16,
+        "Report Version": 18,
         "Section": 16,
         "Page": 12,
         "Line": 14,
-        "Line Number": 14,
-        "Resolved Against Revision": 22,
-        "Comment Type": 22,
+        "Comment Type: Editorial/Grammar, Clarification, Technical": 26,
         "Agency Notes": 55,
         "Agency Suggested Text Change": 55,
-        "WG Chain Comments": 55,
         "NTIA Comments": 65,
         "Comment Disposition": 18,
         "Resolution": 70,
-        "Validation Status": 20,
-        "Validation Code": 22,
-        "Validation Notes": 70,
-        "Comment Cluster Id": 22,
-        "Cluster Label": 30,
-        "Cluster Size": 18,
-        "Intent Classification": 26,
-        "Section Group": 18,
-        "Heat Level": 16,
-        "Report Context": 70,
-        "Context Confidence": 22,
-        "Patch Text": 70,
-        "Patch Source": 20,
-        "Patch Confidence": 18,
-        "Resolution Basis": 28,
-        "Shared Resolution Id": 22,
-        "Canonical Term Used": 24,
-        "Resolution Task": 70,
-        "Generation Mode": 24,
-        "Rule Id": 18,
-        "Rule Source": 20,
-        "Rule Version": 18,
-        "Rules Profile": 18,
-        "Rules Version": 18,
-        "Matched Rule Types": 26,
-        "Review Status": 20,
-        "Confidence Score": 18,
-        "Provenance Record Id": 26,
     }
 
     wrap_headers = {
         "Agency Notes",
         "Agency Suggested Text Change",
-        "WG Chain Comments",
         "NTIA Comments",
         "Resolution",
-        "Report Context",
-        "Patch Text",
-        "Patch Source",
-        "Resolution Basis",
-        "Resolution Task",
-        "Validation Notes",
-        "Validation Code",
     }
 
     for idx, col_name in enumerate(ordered.columns, start=1):

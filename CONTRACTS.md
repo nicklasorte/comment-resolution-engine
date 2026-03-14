@@ -7,6 +7,7 @@ Key points:
 - Produces canonical `comment_resolution_matrix` artifacts plus accompanying `provenance_record` outputs.
 - Validates artifacts at system boundaries and fails fast with clear errors when contract mismatches are detected.
 - Provenance must be preserved for traceability and auditability; each resolution row carries a provenance record id and the run-level provenance feed is exported.
+- The MVP spreadsheet interface is fixed: `Comment Number`, `Reviewer Initials`, `Agency`, `Report Version`, `Section`, `Page`, `Line`, `Comment Type: Editorial/Grammar, Clarification, Technical`, `Agency Notes`, `Agency Suggested Text Change`, `NTIA Comments`, `Comment Disposition`, `Resolution`. Import/export preserves these headers and ordering exactly; additional metadata lives in sidecars or optional columns.
 
 Local contract metadata
 - Machine-readable declaration: `config/contracts/contract_declaration.yaml`
