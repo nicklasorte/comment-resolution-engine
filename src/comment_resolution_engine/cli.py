@@ -28,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--faq-output", required=False, help="Optional path for generated FAQ/issue log markdown.")
     parser.add_argument("--summary-output", required=False, help="Optional path for generated section summary markdown.")
     parser.add_argument("--briefing-output", required=False, help="Optional path for generated working group briefing bullets.")
+    parser.add_argument("--emit-debug-json", required=False, nargs="?", const="", help="Write adjudication debug JSON (optionally provide an explicit path).")
     parser.add_argument("--draft-rev2", action="store_true", help="Generate Rev-2 section-level rewrites.")
     parser.add_argument("--draft-mode", required=False, default="CLEAN_REWRITE", help="Rev-2 drafting mode (MINIMAL_EDIT, CLEAN_REWRITE, TECHNICAL_CLARIFICATION, EXECUTIVE_PLAIN_LANGUAGE).")
     parser.add_argument("--draft-sections", required=False, help="Comma-separated list of sections to rewrite.")
@@ -53,11 +54,18 @@ def main() -> None:
     args = build_parser().parse_args()
     draft_sections = [part.strip() for part in (args.draft_sections.split(",") if args.draft_sections else []) if part.strip()]
     constitution_report_path = args.constitution_report
+    debug_json_path = None
     if not constitution_report_path and args.output:
         base = Path(args.output)
         constitution_report_path = base.with_name(base.stem + "_constitution_report.json")
     if not constitution_report_path and args.check_constitution:
         constitution_report_path = Path("outputs/constitution_report.json")
+    if args.emit_debug_json is not None:
+        if isinstance(args.emit_debug_json, str) and args.emit_debug_json.strip():
+            debug_json_path = Path(args.emit_debug_json)
+        elif args.output:
+            base = Path(args.output)
+            debug_json_path = base.with_name(base.stem + "_debug.json")
     try:
         is_pipeline_run = not args.validate_rules and not args.check_constitution
         comments_path = args.reviewer_comment_set or args.comments
@@ -119,6 +127,7 @@ def main() -> None:
             assemble_rev2=args.assemble_rev2,
             rev2_sections_output=args.rev2_sections_output,
             rev2_draft_output=args.rev2_draft_output,
+            debug_output=debug_json_path,
             rules_path=args.rules_path,
             rules_profile=args.rules_profile,
             rules_version=args.rules_version,

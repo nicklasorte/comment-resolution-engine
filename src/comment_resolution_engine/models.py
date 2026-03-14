@@ -21,18 +21,52 @@ class CommentRecord:
     comment_type: str
     agency_notes: str
     agency_suggested_text: str
+    # Normalized aliases for traceability
+    comment_number: str = ""
+    source_agency: str = ""
+    commenter: str = ""
+    comment_category: str = ""
+    comment_text: str = ""
+    proposed_change: str = ""
     wg_chain_comments: str = ""
     comment_disposition: str = ""
     resolution: str = ""
+    response_text: str = ""
+    resolution_summary: str = ""
+    reason_code: str = ""
     resolved_against_revision: str = ""
     generation_mode: str = ""
     review_status: str = ""
+    status: str = ""
+    target_section: str = ""
+    target_page: str = ""
+    target_line: str = ""
     confidence_score: str = ""
     record_type: str = "comment_resolution"
     provenance_record_id: str = ""
     source_document: str = ""
     provenance: dict = field(default_factory=dict)
     raw_row: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        def _assign_if_blank(attr: str, value):
+            current = getattr(self, attr, "")
+            if current in (None, "", []):
+                object.__setattr__(self, attr, value)
+
+        _assign_if_blank("comment_number", self.id)
+        _assign_if_blank("source_agency", self.agency)
+        _assign_if_blank("commenter", self.reviewer_initials)
+        _assign_if_blank("comment_category", self.comment_type)
+        _assign_if_blank("comment_text", self.agency_notes)
+        _assign_if_blank("proposed_change", self.agency_suggested_text)
+        _assign_if_blank("response_text", self.resolution)
+        _assign_if_blank("resolution_summary", self.resolution or self.agency_notes)
+        _assign_if_blank("reason_code", "")
+        _assign_if_blank("status", self.review_status)
+        _assign_if_blank("target_section", self.section)
+        _assign_if_blank("target_page", str(self.page) if self.page is not None else "")
+        _assign_if_blank("target_line", str(self.line) if self.line is not None else "")
 
 
 @dataclass(slots=True)
@@ -87,10 +121,13 @@ class ResolutionDecision:
     disposition: str
     ntia_comment: str
     resolution_text: str
-    patch_text: str
-    patch_source: str
-    patch_confidence: str
-    resolution_basis: str
+    resolution_summary: str = ""
+    patch_text: str = ""
+    patch_source: str = ""
+    patch_confidence: str = ""
+    resolution_basis: str = ""
+    reason_code: str = ""
+    policy_version: str = ""
     validation_code: str = ""
     validation_status: str = ""
     validation_notes: str = ""

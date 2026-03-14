@@ -1,0 +1,70 @@
+[
+  {
+    "id": "E-001",
+    "source_agency": "FCC",
+    "commenter": "AB",
+    "comment_text": "Correct the spelling of interoperable in Section 1.1 line 3.",
+    "comment_type": "Editorial/Grammar",
+    "proposed_change": "Correct spelling of interoperable.",
+    "target_section": "1.1",
+    "target_page": "3",
+    "target_line": "3",
+    "expected_disposition": "Accept",
+    "expected_reason_code": "EDITORIAL_ACCEPTED"
+  },
+  {
+    "id": "C-002",
+    "source_agency": "NTIA",
+    "commenter": "CD",
+    "comment_text": "Please clarify whether the pilot covers rural deployments.",
+    "comment_type": "Clarification",
+    "target_section": "2.2",
+    "target_page": "5",
+    "target_line": "12",
+    "expected_disposition": "Accept",
+    "expected_reason_code": "CLARIFICATION_PROVIDED"
+  },
+  {
+    "id": "R-003",
+    "source_agency": "DOC",
+    "commenter": "EF",
+    "comment_text": "Replace the cost model with a proprietary framework that is not referenced in the report.",
+    "comment_type": "Technical",
+    "disposition": "Reject",
+    "expected_disposition": "Reject",
+    "expected_reason_code": "REJECTED_WITH_RATIONALE"
+  },
+  {
+    "id": "D-004",
+    "source_agency": "FCC",
+    "commenter": "GH",
+    "comment_text": "Duplicate of comment C-002.",
+    "comment_type": "Technical",
+    "status": "duplicate",
+    "expected_disposition": "Reject",
+    "expected_reason_code": "DUPLICATE_COMMENT"
+  },
+  {
+    "id": "X-005",
+    "source_agency": "NTIA",
+    "commenter": "IJ",
+    "comment_text": "Already implemented in revision 2; no further changes required.",
+    "comment_type": "Editorial",
+    "status": "completed",
+    "resolution": "Completed in prior revision.",
+    "expected_disposition": "Completed",
+    "expected_reason_code": "NO_CHANGE_NEEDED"
+  },
+  {
+    "id": "P-006",
+    "source_agency": "FCC",
+    "commenter": "KL",
+    "comment_text": "Add a quantitative sensitivity analysis section.",
+    "comment_type": "Technical",
+    "target_section": "4.1",
+    "target_page": "10",
+    "target_line": "7",
+    "expected_disposition": "Partial Accept",
+    "expected_reason_code": "TECHNICAL_ACCEPTED_PARTIAL"
+  }
+]

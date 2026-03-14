@@ -37,6 +37,7 @@ python resolve_comments.py \
     --paper   <working_paper.pdf>        # Required: revised working paper PDF
     --output  <adjudicated_matrix.xlsx>  # Optional: output path
                                          #   default: adjudicated_comment_matrix.xlsx
+    --emit-debug-json                    # Optional: write <output>_debug.json with reason codes and responses
 ```
 
 ### Smoke test

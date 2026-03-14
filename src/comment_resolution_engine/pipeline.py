@@ -80,6 +80,17 @@ def _match_report_version_label(label: str, pdf_contexts):
     return None
 
 
+def _target_reference(section: str | None, page: str | int | None, line: str | int | None) -> str:
+    parts: list[str] = []
+    if section:
+        parts.append(f"Section {section}")
+    if page not in ("", None):
+        parts.append(f"p. {page}")
+    if line not in ("", None):
+        parts.append(f"l. {line}")
+    return ", ".join(parts)
+
+
 def _set_column(output_df, mapping, canonical_key: str, values: Iterable[str], always_override: bool = False):
     import pandas as pd
 
@@ -176,6 +187,7 @@ def run_pipeline(
     faq_output: str | Path | None = None,
     summary_output: str | Path | None = None,
     briefing_output: str | Path | None = None,
+    debug_output: str | Path | None = None,
     draft_rev2: bool = False,
     draft_mode: str = DEFAULT_DRAFT_MODE,
     draft_sections: list[str] | None = None,
@@ -415,6 +427,9 @@ def run_pipeline(
         _set_column(output_df, mapping, "patch_source", [d.patch_source for d in decisions], always_override=True)
         _set_column(output_df, mapping, "patch_confidence", [d.patch_confidence for d in decisions], always_override=True)
         _set_column(output_df, mapping, "resolution_basis", [d.resolution_basis for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "resolution_summary", [d.resolution_summary or d.resolution_text for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "reason_code", [d.reason_code for d in decisions], always_override=True)
+        _set_column(output_df, mapping, "response_text", [d.resolution_text for d in decisions], always_override=True)
         _set_column(output_df, mapping, "report_context", [c.report_context for c in analyzed], always_override=True)
         _set_column(output_df, mapping, "context_confidence", [c.context_confidence for c in analyzed], always_override=True)
         _set_column(output_df, mapping, "resolution_task", [_resolution_task(c, d.disposition) for c, d in zip(analyzed, decisions)], always_override=True)
@@ -441,6 +456,37 @@ def run_pipeline(
         _set_column(output_df, mapping, "canonical_term_used", [d.canonical_term_used for d in decisions], always_override=True)
 
     output_df = reorder_to_canonical(output_df, include_metadata=include_metadata_columns)
+
+    if debug_output:
+        debug_file = Path(debug_output)
+        debug_records = []
+        for comment, decision in zip(analyzed, decisions):
+            debug_records.append(
+                {
+                    "comment_id": comment.id,
+                    "comment_number": comment.comment_number,
+                    "source_agency": comment.agency,
+                    "commenter": comment.reviewer_initials,
+                    "comment_text": comment.agency_notes,
+                    "comment_type": comment.normalized_type or comment.comment_type,
+                    "target_section": comment.section,
+                    "target_page": comment.page,
+                    "target_line": comment.line,
+                    "target_reference": _target_reference(comment.section, comment.page, comment.line),
+                    "disposition": decision.disposition,
+                    "reason_code": decision.reason_code,
+                    "resolution_summary": decision.resolution_summary or decision.resolution_text,
+                    "response_text": decision.resolution_text,
+                    "ntia_comment": decision.ntia_comment,
+                    "policy_version": decision.policy_version,
+                    "rules_profile": decision.rules_profile,
+                    "rule_id": decision.rule_id,
+                    "revision": comment.revision,
+                    "resolved_against_revision": comment.resolved_against_revision,
+                }
+            )
+        _write_json(debug_file, debug_records)
+
     write_resolution_workbook(output_df, output_path, include_metadata=include_metadata_columns)
 
     base = Path(output_path)

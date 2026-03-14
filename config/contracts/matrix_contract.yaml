@@ -42,6 +42,9 @@ headers:
     Validation Status: validation_status
     Validation Notes: validation_notes
     Validation Code: validation_code
+    Resolution Summary: resolution_summary
+    Reason Code: reason_code
+    Response Text: response_text
     Patch Text: patch_text
     Patch Source: patch_source
     Patch Confidence: patch_confidence
@@ -98,6 +101,9 @@ order:
     - Validation Status
     - Validation Notes
     - Validation Code
+    - Resolution Summary
+    - Reason Code
+    - Response Text
     - Patch Text
     - Patch Source
     - Patch Confidence
