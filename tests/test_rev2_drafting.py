@@ -107,7 +107,9 @@ def test_rev2_pipeline_outputs_rewrites_and_draft(tmp_path: Path):
     assert rev2_draft_path.exists()
     assert rev2_appendix_path.exists()
 
-    rewrites = json.loads(rev2_sections_path.read_text())
+    rewrites_raw = json.loads(rev2_sections_path.read_text())
+    rewrites_payload = rewrites_raw.get("payload", rewrites_raw)
+    rewrites = rewrites_payload["sections"] if isinstance(rewrites_payload, dict) else rewrites_payload
     assert rewrites
     first = rewrites[0]
     assert first["revised_text"]

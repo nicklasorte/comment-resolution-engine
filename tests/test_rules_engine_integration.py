@@ -84,9 +84,11 @@ def test_canonical_rule_normalizes_revision_and_canonical_term(tmp_path: Path):
     assert out_df.iloc[0]["Resolved Against Revision"] == "rev2"
     assert out_df.iloc[0]["Canonical Term Used"] == "methodology_scope_profile"
     assert out_df.iloc[0]["Rule Id"] != ""
-    provenance = json.loads((tmp_path / "out_provenance.json").read_text())
-    assert provenance[0]["derived_from"]["rules"]["rules_profile"] == "default"
-    assert provenance[0]["derived_from"]["rules"]["rules_version"] == "0.0.1"
+    provenance_raw = json.loads((tmp_path / "out_provenance.json").read_text())
+    provenance_payload = provenance_raw.get("payload", provenance_raw)
+    records = provenance_payload["records"] if isinstance(provenance_payload, dict) else provenance_payload
+    assert records[0]["derived_from"]["rules"]["rules_profile"] == "default"
+    assert records[0]["derived_from"]["rules"]["rules_version"] == "0.0.1"
 
 
 def test_issue_pattern_precedes_local_heuristics(tmp_path: Path):

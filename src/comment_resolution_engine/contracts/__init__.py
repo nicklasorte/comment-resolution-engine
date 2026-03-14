@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import tomllib
+
 from .models import ConstitutionContext
 
 IMPLEMENTED_SYSTEM_ID = "SYS-001"
@@ -16,6 +18,27 @@ DEFAULT_WORKFLOW_STEP = "generate_outputs"
 DEFAULT_GENERATION_MODE = "DETERMINISTIC_PIPELINE"
 
 DEFAULT_CONSTITUTION_PATH = Path("config/constitution.yaml")
+PYPROJECT_PATH = Path(__file__).resolve().parents[3] / "pyproject.toml"
+
+
+def _load_implementation_version() -> str:
+    try:
+        import importlib.metadata as importlib_metadata
+
+        return importlib_metadata.version("comment-resolution-engine")
+    except Exception:
+        try:
+            data = tomllib.loads(PYPROJECT_PATH.read_text())
+            return (
+                data.get("project", {}).get("version")
+                or data.get("tool", {}).get("poetry", {}).get("version")
+                or "0.0.0"
+            )
+        except Exception:
+            return "0.0.0"
+
+
+IMPLEMENTATION_VERSION = _load_implementation_version()
 
 
 def default_constitution_context() -> ConstitutionContext:

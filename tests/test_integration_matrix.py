@@ -65,7 +65,9 @@ def test_realistic_integration_pipeline(tmp_path: Path):
     assert list(out_df.columns) == CANONICAL_SPREADSHEET_HEADERS
     assert out_df.iloc[0]["Resolution"] != ""
     assert out_df.iloc[0]["NTIA Comments"] != ""
-    patch_records = json.loads((tmp_path / "out_patches.json").read_text())
+    patch_raw = json.loads((tmp_path / "out_patches.json").read_text())
+    patch_payload = patch_raw.get("payload", patch_raw)
+    patch_records = patch_payload["records"] if isinstance(patch_payload, dict) else patch_payload
     assert patch_records
     assert "confidence" in patch_records[0]
     assert patch_records[0]["new_text"]

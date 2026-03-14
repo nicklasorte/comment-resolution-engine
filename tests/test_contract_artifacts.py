@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -37,16 +38,16 @@ def test_reviewer_comment_set_example_validates():
 
 def test_comment_resolution_matrix_example_validates():
     matrix_path = Path("examples/contracts/comment_resolution_matrix_example.json")
-    matrix_artifact = yaml.safe_load(matrix_path.read_text())
-    validate_comment_resolution_matrix_artifact(matrix_artifact)
-    assert matrix_artifact["rows"][0]["comment_id"] == "C-001"
+    matrix_artifact = json.loads(matrix_path.read_text())
+    validated = validate_comment_resolution_matrix_artifact(matrix_artifact)
+    assert validated["rows"][0]["comment_id"] == "C-001"
 
 
 def test_provenance_record_example_validates():
     prov_path = Path("examples/contracts/provenance_record_example.json")
-    prov_artifact = yaml.safe_load(prov_path.read_text())
-    validate_provenance_record_artifact(prov_artifact)
-    assert prov_artifact["records"][0]["record_id"] == "prov-C-001"
+    prov_artifact = json.loads(prov_path.read_text())
+    validated = validate_provenance_record_artifact(prov_artifact)
+    assert validated["records"][0]["record_id"] == "prov-C-001"
 
 
 def test_pipeline_emits_canonical_artifacts(tmp_path: Path):
@@ -81,14 +82,14 @@ def test_pipeline_emits_canonical_artifacts(tmp_path: Path):
     assert matrix_path.exists()
     assert provenance_path.exists()
 
-    matrix_artifact = yaml.safe_load(matrix_path.read_text())
-    prov_artifact = yaml.safe_load(provenance_path.read_text())
+    matrix_artifact = json.loads(matrix_path.read_text())
+    prov_artifact = json.loads(provenance_path.read_text())
 
-    validate_comment_resolution_matrix_artifact(matrix_artifact)
-    validate_provenance_record_artifact(prov_artifact)
-    assert matrix_artifact["rows"][0]["comment_id"] == "1"
-    assert matrix_artifact["rows"][0]["trace"]["source_comment_id"] == "1"
-    assert prov_artifact["resolution_run_id"] == matrix_artifact["resolution_run_id"]
+    validated_matrix = validate_comment_resolution_matrix_artifact(matrix_artifact)
+    validated_prov = validate_provenance_record_artifact(prov_artifact)
+    assert validated_matrix["rows"][0]["comment_id"] == "1"
+    assert validated_matrix["rows"][0]["trace"]["source_comment_id"] == "1"
+    assert validated_prov["resolution_run_id"] == validated_matrix["resolution_run_id"]
 
 
 def test_missing_required_field_raises():

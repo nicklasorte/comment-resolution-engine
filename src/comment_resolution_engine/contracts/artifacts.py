@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from dataclasses import asdict
@@ -9,12 +10,22 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from ..errors import CREError, ErrorCategory
 from ..models import CommentRecord, ResolutionDecision
-from . import ARCHITECTURE_REPO, IMPLEMENTATION_REPO, SCHEMA_VERSION, SPEC_VERSION
+from . import (
+    ARCHITECTURE_REPO,
+    IMPLEMENTATION_REPO,
+    IMPLEMENTATION_VERSION,
+    SCHEMA_VERSION,
+    SPEC_VERSION,
+)
 
 CANONICAL_CONTRACT_SOURCE = "spectrum-systems"
 CANONICAL_REVIEWER_COMMENT_SET_VERSION = "1.0.0"
 CANONICAL_COMMENT_RESOLUTION_MATRIX_VERSION = "1.0.0"
 CANONICAL_PROVENANCE_RECORD_VERSION = "1.0.0"
+CANONICAL_PATCH_RECORD_VERSION = "1.0.0"
+CANONICAL_SHARED_RESOLUTION_VERSION = "1.0.0"
+CANONICAL_PROVENANCE_RECORD_SET_VERSION = "1.0.0"
+CANONICAL_REV2_SECTION_VERSION = "1.0.0"
 
 
 def _utcnow_iso() -> str:
@@ -46,6 +57,93 @@ def _ensure(value: Any, message: str, category: ErrorCategory = ErrorCategory.SC
         raise CREError(category, message)
     return value
 
+
+def _canonical_json(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+
+
+def _hash_payload(payload: Any) -> str:
+    return f"sha256:{hashlib.sha256(_canonical_json(payload).encode('utf-8')).hexdigest()}"
+
+
+def build_artifact_envelope(
+    payload: Any,
+    *,
+    artifact_id: str,
+    description: str,
+    artifact_type: str | None = None,
+    artifact_version: str | None = None,
+    produced_by: str = IMPLEMENTATION_REPO,
+    tool_version: str = IMPLEMENTATION_VERSION,
+    input_artifacts: Optional[list] = None,
+    source_files: Optional[list] = None,
+    schema_reference: str | None = None,
+    created_at: str | None = None,
+) -> Dict[str, Any]:
+    payload_dict = payload.copy() if isinstance(payload, dict) else payload
+    resolved_type = artifact_type or (payload_dict.get("artifact_type") if isinstance(payload_dict, dict) else "")
+    resolved_version = artifact_version or (payload_dict.get("artifact_version") if isinstance(payload_dict, dict) else "")
+
+    if isinstance(payload_dict, dict):
+        payload_dict.setdefault("artifact_type", resolved_type)
+        payload_dict.setdefault("artifact_version", resolved_version)
+        payload_dict.setdefault("artifact_id", artifact_id)
+        payload_dict.setdefault("generated_at", created_at or _utcnow_iso())
+
+    reference = schema_reference
+    if not reference and isinstance(payload_dict, dict) and resolved_type:
+        contract_version = payload_dict.get("contract_version") or resolved_version or payload_dict.get("schema_version") or ""
+        reference = f"{payload_dict.get('standards_source_repo', CANONICAL_CONTRACT_SOURCE)}/{resolved_type}@{contract_version}"
+
+    created_at_utc = created_at or (payload_dict.get("generated_at") if isinstance(payload_dict, dict) else None) or _utcnow_iso()
+    payload_hash = _hash_payload(payload_dict)
+
+    return {
+        "artifact_type": resolved_type,
+        "artifact_version": resolved_version,
+        "artifact_id": artifact_id,
+        "created_at_utc": created_at_utc,
+        "produced_by": produced_by,
+        "tool_version": tool_version,
+        "input_artifacts": input_artifacts or [],
+        "source_files": source_files or [],
+        "schema_reference": reference or "",
+        "hash": payload_hash,
+        "description": description,
+        "payload": payload_dict,
+    }
+
+
+def validate_artifact_envelope(artifact: Dict[str, Any], expected_type: str | None = None) -> Dict[str, Any]:
+    if not isinstance(artifact, dict):
+        raise CREError(ErrorCategory.SCHEMA_ERROR, "Artifact envelope must be a mapping.")
+    payload = artifact.get("payload")
+    _ensure(payload is not None, "Artifact envelope must include payload.")
+    _ensure(artifact.get("artifact_type"), "artifact_type is required in the envelope.")
+    _ensure(artifact.get("artifact_id"), "artifact_id is required in the envelope.")
+    if expected_type and artifact.get("artifact_type") != expected_type:
+        raise CREError(ErrorCategory.SCHEMA_ERROR, f"artifact_type must be '{expected_type}'.")
+    _ensure(artifact.get("artifact_version"), "artifact_version is required in the envelope.")
+    _ensure(artifact.get("created_at_utc"), "created_at_utc is required in the envelope.")
+    _ensure(artifact.get("produced_by"), "produced_by is required in the envelope.")
+    _ensure(artifact.get("tool_version"), "tool_version is required in the envelope.")
+    _ensure(isinstance(artifact.get("input_artifacts"), list), "input_artifacts must be a list.")
+    _ensure(isinstance(artifact.get("source_files"), list), "source_files must be a list.")
+    _ensure(artifact.get("schema_reference") is not None, "schema_reference is required in the envelope.")
+    _ensure(artifact.get("hash"), "hash is required in the envelope.")
+    if _hash_payload(payload) != artifact["hash"]:
+        raise CREError(ErrorCategory.SCHEMA_ERROR, "Artifact envelope hash does not match payload contents.")
+    return artifact
+
+
+def _unwrap_artifact(candidate: Dict[str, Any], expected_type: str | None = None) -> Tuple[Dict[str, Any], Dict[str, Any] | None]:
+    if isinstance(candidate, dict) and "payload" in candidate:
+        validate_artifact_envelope(candidate, expected_type=expected_type)
+        payload = candidate["payload"]
+        if not isinstance(payload, dict):
+            raise CREError(ErrorCategory.SCHEMA_ERROR, "Artifact payload must be a mapping.")
+        return payload, candidate
+    return candidate, None
 
 def _to_int(value) -> Optional[int]:
     try:
@@ -86,7 +184,8 @@ def _normalize_comment_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
 def validate_reviewer_comment_set(payload: Dict[str, Any], allow_blank_revision: bool = False) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise CREError(ErrorCategory.SCHEMA_ERROR, "Reviewer comment set must be a mapping.")
-    artifact_type = payload.get("artifact_type")
+    payload, envelope = _unwrap_artifact(payload, expected_type=None)
+    artifact_type = payload.get("artifact_type") or (envelope or {}).get("artifact_type")
     if artifact_type not in {"reviewer_comment_set", "reviewer_comments"}:
         raise CREError(ErrorCategory.SCHEMA_ERROR, "artifact_type must be 'reviewer_comment_set'.")
 
@@ -106,9 +205,11 @@ def validate_reviewer_comment_set(payload: Dict[str, Any], allow_blank_revision:
         normalized_comments.append(normalized)
 
     artifact_id = str(payload.get("artifact_id") or payload.get("id") or "").strip()
+    if not artifact_id and envelope:
+        artifact_id = str(envelope.get("artifact_id") or "").strip()
     source_repo = str(payload.get("standards_source_repo") or CANONICAL_CONTRACT_SOURCE)
-    artifact_version = str(payload.get("artifact_version") or CANONICAL_REVIEWER_COMMENT_SET_VERSION)
-    schema_version = str(payload.get("schema_version") or SCHEMA_VERSION)
+    artifact_version = str(payload.get("artifact_version") or (envelope or {}).get("artifact_version") or CANONICAL_REVIEWER_COMMENT_SET_VERSION)
+    schema_version = str(payload.get("schema_version") or (envelope or {}).get("schema_version") or SCHEMA_VERSION)
     contract_version = str(payload.get("contract_version") or artifact_version)
 
     return {
@@ -287,6 +388,7 @@ def build_comment_resolution_matrix_artifact(
 
     return {
         "artifact_type": "comment_resolution_matrix",
+        "artifact_id": run_id,
         "artifact_version": CANONICAL_COMMENT_RESOLUTION_MATRIX_VERSION,
         "schema_version": SCHEMA_VERSION,
         "standards_source_repo": CANONICAL_CONTRACT_SOURCE,
@@ -312,10 +414,15 @@ def build_comment_resolution_matrix_artifact(
 
 
 def validate_comment_resolution_matrix_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]:
-    if artifact.get("artifact_type") != "comment_resolution_matrix":
+    if not isinstance(artifact, dict):
+        raise CREError(ErrorCategory.SCHEMA_ERROR, "Artifact must be a mapping.")
+    payload, envelope = _unwrap_artifact(artifact, expected_type="comment_resolution_matrix")
+    target = payload
+    if target.get("artifact_type") != "comment_resolution_matrix":
         raise CREError(ErrorCategory.SCHEMA_ERROR, "artifact_type must be comment_resolution_matrix.")
-    _ensure(artifact.get("resolution_run_id"), "resolution_run_id is required for comment_resolution_matrix.")
-    rows = artifact.get("rows")
+    _ensure(target.get("artifact_id") or target.get("resolution_run_id"), "artifact_id or resolution_run_id is required for comment_resolution_matrix.")
+    _ensure(target.get("resolution_run_id"), "resolution_run_id is required for comment_resolution_matrix.")
+    rows = target.get("rows")
     if not isinstance(rows, list) or not rows:
         raise CREError(ErrorCategory.SCHEMA_ERROR, "comment_resolution_matrix rows must be a non-empty list.")
     for idx, row in enumerate(rows):
@@ -327,7 +434,7 @@ def validate_comment_resolution_matrix_artifact(artifact: Dict[str, Any]) -> Dic
         _ensure(row.get("disposition"), f"Row {idx} missing disposition for comment {row.get('comment_id')}.")
         trace = row.get("trace") or {}
         _ensure(trace.get("source_comment_id"), f"Row {idx} missing trace.source_comment_id.")
-    return artifact
+    return target
 
 
 def build_provenance_record_artifact(
@@ -339,6 +446,7 @@ def build_provenance_record_artifact(
 ) -> Dict[str, Any]:
     return {
         "artifact_type": "provenance_record",
+        "artifact_id": run_id,
         "artifact_version": CANONICAL_PROVENANCE_RECORD_VERSION,
         "schema_version": SCHEMA_VERSION,
         "standards_source_repo": CANONICAL_CONTRACT_SOURCE,
@@ -365,17 +473,22 @@ def build_provenance_record_artifact(
 
 
 def validate_provenance_record_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]:
-    if artifact.get("artifact_type") != "provenance_record":
+    if not isinstance(artifact, dict):
+        raise CREError(ErrorCategory.SCHEMA_ERROR, "Artifact must be a mapping.")
+    payload, envelope = _unwrap_artifact(artifact, expected_type="provenance_record")
+    target = payload
+    if target.get("artifact_type") != "provenance_record":
         raise CREError(ErrorCategory.SCHEMA_ERROR, "artifact_type must be provenance_record.")
-    _ensure(artifact.get("resolution_run_id"), "resolution_run_id is required for provenance_record.")
-    records = artifact.get("records")
+    _ensure(target.get("artifact_id") or target.get("resolution_run_id"), "artifact_id or resolution_run_id is required for provenance_record.")
+    _ensure(target.get("resolution_run_id"), "resolution_run_id is required for provenance_record.")
+    records = target.get("records")
     if not isinstance(records, list) or not records:
         raise CREError(ErrorCategory.SCHEMA_ERROR, "provenance_record requires non-empty records.")
     for idx, record in enumerate(records):
         _ensure(record.get("record_id"), f"Provenance record {idx} missing record_id.")
         _ensure(record.get("record_type"), f"Provenance record {idx} missing record_type.")
         _ensure(record.get("source_revision"), f"Provenance record {idx} missing source_revision.")
-    return artifact
+    return target
 
 
 def new_resolution_run_id() -> str:

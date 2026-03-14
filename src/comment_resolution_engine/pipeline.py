@@ -13,14 +13,20 @@ from .contracts import (
     DEFAULT_WORKFLOW_NAME,
     DEFAULT_WORKFLOW_STEP,
     default_constitution_context,
+    IMPLEMENTATION_REPO,
 )
 from .contracts.artifacts import (
     build_adapter_artifact,
     build_comment_records_from_artifact,
     build_comment_resolution_matrix_artifact,
+    build_artifact_envelope,
     build_provenance_record_artifact,
     load_reviewer_comment_set,
     new_resolution_run_id,
+    CANONICAL_PATCH_RECORD_VERSION,
+    CANONICAL_PROVENANCE_RECORD_SET_VERSION,
+    CANONICAL_SHARED_RESOLUTION_VERSION,
+    CANONICAL_REV2_SECTION_VERSION,
     validate_reviewer_comment_set,
     validate_comment_resolution_matrix_artifact,
     validate_provenance_record_artifact,
@@ -103,6 +109,45 @@ def _write_json(path: Path, payload) -> None:
 def _write_markdown(path: Path, lines: Iterable[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines))
+
+
+def _artifact_reference(artifact: dict | None) -> dict:
+    if not artifact:
+        return {}
+    candidate = {
+        "artifact_type": artifact.get("artifact_type"),
+        "artifact_id": artifact.get("artifact_id") or artifact.get("resolution_run_id"),
+        "artifact_version": artifact.get("artifact_version") or artifact.get("contract_version"),
+        "contract_version": artifact.get("contract_version"),
+        "schema_version": artifact.get("schema_version"),
+        "standards_source_repo": artifact.get("standards_source_repo") or artifact.get("source_repo"),
+    }
+    return {k: v for k, v in candidate.items() if v not in {None, ""}}
+
+
+def _write_artifact(
+    path: Path,
+    payload,
+    *,
+    artifact_id: str,
+    description: str,
+    artifact_type: str | None = None,
+    artifact_version: str | None = None,
+    input_artifacts: list | None = None,
+    source_files: list | None = None,
+    schema_reference: str | None = None,
+):
+    envelope = build_artifact_envelope(
+        payload,
+        artifact_id=artifact_id,
+        description=description,
+        artifact_type=artifact_type,
+        artifact_version=artifact_version,
+        input_artifacts=input_artifacts or [],
+        source_files=source_files or [],
+        schema_reference=schema_reference,
+    )
+    _write_json(path, envelope)
 
 
 def _apply_rule_metadata(target, summary: dict) -> None:
@@ -200,6 +245,22 @@ def run_pipeline(
 
     resolution_run_id = new_resolution_run_id()
     active_constitution = constitution_context or default_constitution_context()
+    source_files: list[str] = []
+    if comments_path:
+        source_files.append(str(comments_path))
+    if report_path:
+        if isinstance(report_path, (list, tuple)):
+            source_files.extend([str(p) for p in report_path])
+        else:
+            source_files.append(str(report_path))
+    if config_path:
+        source_files.append(str(config_path))
+    if rules_path:
+        source_files.append(str(rules_path))
+    if constitution_path:
+        source_files.append(str(constitution_path))
+    if constitution_report_path:
+        source_files.append(str(constitution_report_path))
     if not skip_constitution_check and constitution_context is None:
         active_constitution, _ = load_constitution(
             manifest_path=constitution_path or DEFAULT_CONSTITUTION_PATH,
@@ -221,6 +282,22 @@ def run_pipeline(
     else:
         records, normalized_df, raw_df = read_comment_matrix(str(comments_path), mapping)
         reviewer_artifact = validate_reviewer_comment_set(build_adapter_artifact(records, source_path=comments_path), allow_blank_revision=True)
+    input_artifacts: list[dict] = []
+    if reviewer_artifact:
+        ref = _artifact_reference(reviewer_artifact)
+        if ref:
+            input_artifacts.append(ref)
+    if active_constitution:
+        input_artifacts.append(
+            {
+                "artifact_type": "constitution",
+                "artifact_id": active_constitution.system_id,
+                "artifact_version": active_constitution.pinned_version,
+                "pinned_commit": active_constitution.pinned_commit,
+                "compatibility_mode": active_constitution.compatibility_mode,
+                "source_repo": active_constitution.source_repo,
+            }
+        )
     rule_pack = (
         load_rule_pack(
             rules_path,
@@ -450,9 +527,12 @@ def run_pipeline(
     briefing_file = Path(briefing_output) if briefing_output else base.with_name(base.stem + "_briefing.md")
     provenance_file = base.with_name(base.stem + "_provenance.json")
 
-    _write_json(
-        patch_file,
-        [
+    patch_payload = {
+        "artifact_type": "patch_record_set",
+        "artifact_version": CANONICAL_PATCH_RECORD_VERSION,
+        "standards_source_repo": IMPLEMENTATION_REPO,
+        "resolution_run_id": resolution_run_id,
+        "records": [
             {
                 "comment_id": p.comment_id,
                 "target_section": p.target_section,
@@ -471,11 +551,22 @@ def run_pipeline(
             }
             for p in patches
         ],
+    }
+    _write_artifact(
+        patch_file,
+        patch_payload,
+        artifact_id=f"{resolution_run_id}-patch-records",
+        description="Report patch records derived from the resolution run.",
+        input_artifacts=input_artifacts,
+        source_files=source_files,
     )
 
-    _write_json(
-        base.with_name(base.stem + "_shared_resolutions.json"),
-        [
+    shared_payload = {
+        "artifact_type": "shared_resolution_set",
+        "artifact_version": CANONICAL_SHARED_RESOLUTION_VERSION,
+        "standards_source_repo": IMPLEMENTATION_REPO,
+        "resolution_run_id": resolution_run_id,
+        "shared_resolutions": [
             {
                 "master_resolution_id": sr.master_resolution_id,
                 "linked_comment_ids": sr.linked_comment_ids,
@@ -484,8 +575,30 @@ def run_pipeline(
             }
             for sr in shared_resolutions
         ],
+    }
+    _write_artifact(
+        base.with_name(base.stem + "_shared_resolutions.json"),
+        shared_payload,
+        artifact_id=f"{resolution_run_id}-shared-resolutions",
+        description="Shared resolutions spanning clustered comments.",
+        input_artifacts=input_artifacts,
+        source_files=source_files,
     )
-    _write_json(provenance_file, provenance_records)
+    provenance_records_payload = {
+        "artifact_type": "provenance_record_set",
+        "artifact_version": CANONICAL_PROVENANCE_RECORD_SET_VERSION,
+        "standards_source_repo": IMPLEMENTATION_REPO,
+        "resolution_run_id": resolution_run_id,
+        "records": provenance_records,
+    }
+    _write_artifact(
+        provenance_file,
+        provenance_records_payload,
+        artifact_id=f"{resolution_run_id}-provenance-records",
+        description="Per-comment provenance records for the resolution run.",
+        input_artifacts=input_artifacts,
+        source_files=source_files,
+    )
 
     canonical_matrix = build_comment_resolution_matrix_artifact(
         run_id=resolution_run_id,
@@ -498,7 +611,15 @@ def run_pipeline(
     )
     validate_comment_resolution_matrix_artifact(canonical_matrix)
     canonical_matrix_path = base.with_name(base.stem + "_comment_resolution_matrix.json")
-    _write_json(canonical_matrix_path, canonical_matrix)
+    _write_artifact(
+        canonical_matrix_path,
+        canonical_matrix,
+        artifact_id=resolution_run_id,
+        description="Canonical comment resolution matrix artifact.",
+        input_artifacts=input_artifacts,
+        source_files=source_files,
+    )
+    matrix_ref = _artifact_reference(canonical_matrix)
 
     canonical_provenance = build_provenance_record_artifact(
         run_id=resolution_run_id,
@@ -508,7 +629,15 @@ def run_pipeline(
         constitution=active_constitution,
     )
     validate_provenance_record_artifact(canonical_provenance)
-    _write_json(base.with_name(base.stem + "_provenance_record.json"), canonical_provenance)
+    provenance_inputs = input_artifacts + ([matrix_ref] if matrix_ref else [])
+    _write_artifact(
+        base.with_name(base.stem + "_provenance_record.json"),
+        canonical_provenance,
+        artifact_id=resolution_run_id,
+        description="Canonical provenance record artifact for the resolution run.",
+        input_artifacts=provenance_inputs,
+        source_files=source_files,
+    )
 
     faq_lines = ["# FAQ / Issue Log"]
     for entry in faq_entries:
@@ -554,7 +683,21 @@ def run_pipeline(
             pdf_context=primary_pdf_context,
         )
         validated_rewrites = [validate_section_rewrite(r) for r in rewrites]
-        _write_json(rev2_sections_path, [asdict(r) for r in validated_rewrites])
+        rev2_payload = {
+            "artifact_type": "rev2_section_set",
+            "artifact_version": CANONICAL_REV2_SECTION_VERSION,
+            "standards_source_repo": IMPLEMENTATION_REPO,
+            "resolution_run_id": resolution_run_id,
+            "sections": [asdict(r) for r in validated_rewrites],
+        }
+        _write_artifact(
+            rev2_sections_path,
+            rev2_payload,
+            artifact_id=f"{resolution_run_id}-rev2-sections",
+            description="Rev2 section rewrites for assembled draft generation.",
+            input_artifacts=input_artifacts,
+            source_files=source_files,
+        )
         if assemble_rev2:
             draft_lines, appendix_lines = assemble_rev2_draft(validated_rewrites)
             _write_markdown(rev2_draft_path, draft_lines)

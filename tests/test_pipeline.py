@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -158,9 +159,12 @@ def test_pipeline_maps_blank_revision_to_single_pdf(tmp_path: Path):
         config_path=None,
     )
     assert out_df.iloc[0]["Report Version"] == "rev1"
-    provenance = (tmp_path / "out_provenance.json").read_text()
-    assert "record_id" in provenance
-    assert "generated_by_system" in provenance
+    provenance_content = json.loads((tmp_path / "out_provenance.json").read_text())
+    provenance_payload = provenance_content.get("payload", provenance_content)
+    records = provenance_payload["records"] if isinstance(provenance_payload, dict) else provenance_payload
+    provenance_text = json.dumps(records)
+    assert "record_id" in provenance_text
+    assert "generated_by_system" in provenance_text
 
 
 def test_pipeline_requires_revision_when_multiple_reports(tmp_path: Path):
@@ -230,7 +234,10 @@ def test_pipeline_writes_provenance_metadata(tmp_path: Path):
 
     provenance_path = tmp_path / "out_provenance.json"
     assert provenance_path.exists()
-    provenance = pd.read_json(provenance_path)
+    provenance_raw = json.loads(provenance_path.read_text())
+    provenance_payload = provenance_raw.get("payload", provenance_raw)
+    records = provenance_payload["records"] if isinstance(provenance_payload, dict) else provenance_payload
+    provenance = pd.DataFrame(records)
     assert {"record_id", "record_type", "source_document", "resolved_against_revision", "workflow_name", "review_status", "confidence_score"}.issubset(
         set(provenance.columns)
     )
