@@ -64,6 +64,9 @@ def test_rev2_pipeline_outputs_rewrites_and_draft(tmp_path: Path):
     df = pd.DataFrame(
         {
             "Comment Number": [1, 2],
+            "Reviewer Initials": ["AB", "CD"],
+            "Agency": ["NTIA", "NTIA"],
+            "Report Version": ["rev1", "rev1"],
             "Agency Notes": [
                 "Clarify that Figure 5 reference is informational only.",
                 "Explain methodology scope in Section 3.1.",
@@ -75,7 +78,10 @@ def test_rev2_pipeline_outputs_rewrites_and_draft(tmp_path: Path):
             ],
             "Section": ["3.1", "3.1"],
             "Line": ["12", "18"],
-            "Revision": ["rev1", "rev1"],
+            "Page": ["1", "1"],
+            "NTIA Comments": ["", ""],
+            "Comment Disposition": ["", ""],
+            "Resolution": ["", ""],
         }
     )
     df.to_excel(comments_path, index=False)

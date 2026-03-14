@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to working paper PDF (rev1). Provide additional --report arguments for later revisions in order.",
     )
     parser.add_argument("--output", required=False, help="Path for generated output workbook.")
+    parser.add_argument("--include-metadata-columns", action="store_true", help="Optionally include machine-generated metadata columns in the output workbook.")
     parser.add_argument("--config", required=False, help="Path to YAML column mapping config.")
     parser.add_argument("--patch-output", required=False, help="Optional path for generated report patch JSON.")
     parser.add_argument("--faq-output", required=False, help="Optional path for generated FAQ/issue log markdown.")
@@ -116,6 +117,7 @@ def main() -> None:
             fail_on_drift=args.fail_on_drift,
             constitution_context=constitution_context,
             skip_constitution_check=True,
+            include_metadata_columns=args.include_metadata_columns,
         )
     except CREError as exc:
         print(f"ERROR {exc}")

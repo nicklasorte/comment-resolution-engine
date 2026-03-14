@@ -7,6 +7,7 @@ openpyxl = pytest.importorskip("openpyxl")
 from openpyxl import load_workbook
 
 from comment_resolution_engine.excel_io import write_resolution_workbook
+from comment_resolution_engine.spreadsheet_contract import CANONICAL_SPREADSHEET_HEADERS
 
 
 def test_write_resolution_workbook_formats_sheet(tmp_path: Path):
@@ -16,21 +17,16 @@ def test_write_resolution_workbook_formats_sheet(tmp_path: Path):
             "Comment Number": ["1"],
             "Reviewer Initials": ["AB"],
             "Agency": ["Agency X"],
-            "Revision": ["rev1"],
             "Report Version": ["Draft"],
             "Section": ["2.1"],
             "Page": ["10"],
             "Line": ["33"],
-            "Comment Type": ["Clarification"],
+            "Comment Type: Editorial/Grammar, Clarification, Technical": ["Clarification"],
             "Agency Notes": ["Clarify assumptions"],
             "Agency Suggested Text Change": ["The report clarifies the scope of assumptions."],
             "NTIA Comments": ["Accept. Issue noted and agency suggested text is incorporated with NTIA edits as needed."],
             "Comment Disposition": ["Accept"],
             "Resolution": ["The report clarifies the scope of assumptions."],
-            "Report Context": ["L33: System assumptions are defined here"],
-            "Resolution Task": ["Draft NTIA Comments, Comment Disposition (Accept/Reject), and Resolution text that can be inserted into the report. Comment number: 1."],
-            "Validation Status": ["PASS"],
-            "Validation Notes": [""],
         }
     )
 
@@ -43,6 +39,7 @@ def test_write_resolution_workbook_formats_sheet(tmp_path: Path):
     assert ws["A1"].value == "Comment Number"
 
     headers = [cell.value for cell in ws[1]]
+    assert headers == CANONICAL_SPREADSHEET_HEADERS
     ntia_idx = headers.index("NTIA Comments") + 1
     resolution_idx = headers.index("Resolution") + 1
     assert ws.cell(row=2, column=ntia_idx).alignment.wrap_text is True

@@ -53,11 +53,18 @@ def test_pipeline_emits_canonical_artifacts(tmp_path: Path):
     df = pd.DataFrame(
         {
             "Comment Number": [1],
+            "Report Version": ["rev1"],
+            "Reviewer Initials": ["AB"],
+            "Agency": ["NTIA"],
+            "Section": ["1"],
+            "Page": ["1"],
             "Agency Notes": ["Clarify scope"],
             "Comment Type: Editorial/Grammar, Clarification, Technical": ["Technical"],
             "Agency Suggested Text Change": ["State scope explicitly"],
             "Line": ["12"],
-            "Revision": ["rev1"],
+            "NTIA Comments": [""],
+            "Comment Disposition": [""],
+            "Resolution": [""],
         }
     )
     df.to_excel(comments, index=False)

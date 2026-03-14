@@ -4,6 +4,6 @@ This repository implements SYS-001 as defined in the spectrum-systems architectu
 
 Key contract highlights enforced by this implementation:
 - At least one working paper PDF is required; multiple revisions are supported via repeated `--report` flags.
-- The comments matrix must include a `Revision` column when multiple revisions are present; blank revisions map to `rev1` only when a single PDF is provided.
+- The comments matrix must include a `Report Version` column when multiple revisions are present; blank values map to the sole uploaded revision when only one PDF is provided.
 - A referenced revision without an uploaded PDF triggers a clear PROVENANCE_ERROR.
 - Outputs retain revision lineage and provenance metadata alongside validation status and notes.

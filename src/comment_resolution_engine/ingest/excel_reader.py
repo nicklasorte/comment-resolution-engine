@@ -6,25 +6,14 @@ from typing import Iterable, List
 from ..errors import CREError, ErrorCategory
 
 from ..config import ColumnMappingConfig, normalize_header
+from ..spreadsheet_contract import CANONICAL_INTERNAL_ORDER, require_canonical_headers
 from ..models import CommentRecord
 
 
-CANONICAL_COLUMNS = [
-    "comment_number",
-    "reviewer_initials",
-    "agency",
+OPTIONAL_COLUMNS = [
     "revision",
-    "report_version",
-    "section",
-    "page",
-    "line",
     "line_number",
-    "comment_type",
-    "agency_notes",
-    "agency_suggested_text",
     "wg_chain_comments",
-    "comment_disposition",
-    "resolution",
 ]
 
 
@@ -73,21 +62,19 @@ def read_comment_matrix(path: str, mapping: ColumnMappingConfig) -> tuple[list[C
     else:
         df = pd.read_excel(path_str)
     lookup = _build_header_lookup(df.columns.tolist())
-
-    has_revision = any(variant in lookup for variant in mapping.all_variants("revision"))
-    if not has_revision:
-        raise CREError(ErrorCategory.SCHEMA_ERROR, "ERROR: Comments spreadsheet must contain a 'Revision' column indicating which working paper revision the comment references.")
+    require_canonical_headers(df.columns.tolist())
 
     records: List[CommentRecord] = []
     for idx, row in df.iterrows():
-        data = {canonical: _extract_value(row, lookup, mapping, canonical) for canonical in CANONICAL_COLUMNS}
+        data = {canonical: _extract_value(row, lookup, mapping, canonical) for canonical in [*CANONICAL_INTERNAL_ORDER, *OPTIONAL_COLUMNS]}
+        revision_value = _clean_str(data.get("revision")) or _clean_str(data.get("report_version"))
 
         records.append(
             CommentRecord(
                 id=str(data.get("comment_number") or idx + 1),
                 reviewer_initials=_clean_str(data.get("reviewer_initials")),
                 agency=_clean_str(data.get("agency")),
-                revision=_clean_str(data.get("revision")),
+                revision=revision_value,
                 report_version=_clean_str(data.get("report_version")),
                 section=_clean_str(data.get("section")),
                 page=_to_int(data.get("page")),

@@ -53,6 +53,24 @@ Constitution alignment:
 - Apply deterministic validation rules to ensure accepted items describe the change, rejects provide justification, editorial defaults accept, and technical items reference context/sections where possible.
 - Surface `validation_status` and `validation_notes` in the matrix.
 
+## Canonical MVP spreadsheet contract
+The human-facing spreadsheet uses these headers in this exact order (preserved on import and export):
+1. Comment Number
+2. Reviewer Initials
+3. Agency
+4. Report Version
+5. Section
+6. Page
+7. Line
+8. Comment Type: Editorial/Grammar, Clarification, Technical
+9. Agency Notes
+10. Agency Suggested Text Change
+11. NTIA Comments
+12. Comment Disposition
+13. Resolution
+
+Internally, these map to stable keys (`comment_number`, `reviewer_initials`, `agency`, `report_version`, `section`, `page`, `line`, `comment_type`, `agency_notes`, `agency_suggested_text`, `ntia_comments`, `comment_disposition`, `resolution`). Spreadsheet I/O preserves the exact headers and ordering above; machine metadata stays out of the visible matrix unless explicitly enabled.
+
 ## Column Semantics
 - **Agency Notes**: Primary statement of the reviewer’s concern.
 - **Agency Suggested Text Change**: Optional candidate wording from the reviewer.
@@ -61,18 +79,13 @@ Constitution alignment:
 - **Resolution**: Final report-ready text to insert or substitute in the report (not meta-commentary).
 
 ## Inputs
-1. **Excel/CSV comment resolution matrix** with the NTIA headers above or common variants, including a `Revision` column to map comments to working paper revisions.
+1. **Excel/CSV comment resolution matrix** using the canonical headers above. `Report Version` is the revision anchor and must map to an uploaded working paper revision (filename stem or inferred `revN`).
 2. **Working paper PDF revisions** (at least one) with line numbers for grounding (`--report`). Provide multiple `--report` flags in revision order to load later versions (rev1, rev2, rev3, ...).
 
-If only one PDF is provided, blank `Revision` cells map to `rev1`. When multiple revisions are uploaded, every comment must declare a `Revision` value, and any reference to a revision without a matching uploaded PDF fails fast with a clear error.
+If only one PDF is provided, blank `Report Version` cells map to the uploaded revision label. When multiple revisions are uploaded, every comment must declare a `Report Version`, and any reference without a matching uploaded PDF fails fast with a clear error.
 
 ## Outputs
-1. Updated Excel matrix with:
-   - Core metadata (Comment Number, Reviewer Initials, Agency, Report Version, Section, Page, Line)
-   - Agency inputs (Notes, Suggested Text, WG Chain Comments)
-   - NTIA outputs (NTIA Comments, Disposition, Resolution, Report Context, Resolution Task)
-   - Analysis + validation (Comment Cluster Id, Intent Classification, Section Group, Heat Level, Validation Status/Notes)
-   - Traceability + provenance (Resolved Against Revision, Generation Mode, Rule Id/Source/Version, Rules Profile/Version, Matched Rule Types, Review Status, Confidence Score, Provenance Record Id)
+1. Updated Excel matrix that retains the canonical headers/order and populates **NTIA Comments**, **Comment Disposition**, and **Resolution**. Optional machine metadata columns (clusters, patches, provenance, validation, rules) are excluded by default and can be added with `--include-metadata-columns` when needed.
 2. Proposed report patch file (JSON, default `<output>_patches.json`) and shared resolution file (`<output>_shared_resolutions.json`).
 3. FAQ / issue log (`<output>_faq.md`).
 4. Section summary memo (`<output>_section_summary.md`).
@@ -97,6 +110,7 @@ python -m comment_resolution_engine.cli \
   --report inputs/report_rev1.pdf \
   --report inputs/report_rev2.pdf \
   --output outputs/resolved_matrix.xlsx \
+  --include-metadata-columns \
   --config config/column_mapping.yaml \
   --patch-output outputs/report_patches.json \
   --faq-output outputs/faq.md \
@@ -128,7 +142,7 @@ python -m comment_resolution_engine.cli \
 
 When `--rules-path` is omitted, the engine uses local canonical definitions, issue heuristics, disposition logic, and validation as a fallback.
 
-At least one `--report` argument is required. If a comment references a revision (e.g., `rev3`) without a matching PDF upload, the pipeline stops with a clear error.
+At least one `--report` argument is required. If a comment references a report version (e.g., `rev3` or a filename stem) without a matching PDF upload, the pipeline stops with a clear error.
 
 ## Rule packs and validation
 - External rule packs are validated at load time for structure, required fields, and enum values (disposition, workflow status, validation status, error_category).
