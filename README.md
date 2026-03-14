@@ -1,5 +1,92 @@
 # comment-resolution-engine
 
+## MVP Execution Pipeline — `resolve_comments.py`
+
+`resolve_comments.py` is a self-contained script that adjudicates a comment
+resolution matrix against a revised working paper PDF and writes an updated
+matrix.
+
+### Quick start
+
+```bash
+pip install -r requirements.txt
+
+python resolve_comments.py \
+    --matrix examples/sample_matrix.xlsx \
+    --paper  examples/sample_working_paper.pdf \
+    --output adjudicated_comment_matrix.xlsx
+```
+
+### CLI reference
+
+```
+python resolve_comments.py \
+    --matrix  <input_matrix.xlsx|.csv>   # Required: comment resolution matrix
+    --paper   <working_paper.pdf>        # Required: revised working paper PDF
+    --output  <adjudicated_matrix.xlsx>  # Optional: output path
+                                         #   default: adjudicated_comment_matrix.xlsx
+```
+
+### Input format
+
+**`--matrix`** — Excel (`.xlsx`) or CSV spreadsheet that **must** contain the
+canonical headers in any order:
+
+| Column | Description |
+|--------|-------------|
+| Comment Number | Unique row identifier |
+| Reviewer Initials | Reviewer abbreviation |
+| Agency | Submitting agency name |
+| Report Version | Working paper revision anchor |
+| Section | Working paper section reference |
+| Page | Page number |
+| Line | Line number or range |
+| Comment Type: Editorial/Grammar, Clarification, Technical | Comment classification |
+| Agency Notes | Full text of the agency comment |
+| Agency Suggested Text Change | Optional proposed replacement text |
+| NTIA Comments | *(populated by the script)* Revision reference and notes |
+| Comment Disposition | *(populated by the script)* Adjudication outcome |
+| Resolution | *(populated by the script)* Response text |
+
+An optional **`Status`** column may also be present. Rows where `Status`
+equals `completed`, `done`, `closed`, or `resolved` (case-insensitive) are
+treated as already resolved and are not re-adjudicated.
+
+**`--paper`** — PDF of the revised working paper. Text is extracted to supply
+context for generating responses.
+
+Sample files are provided in `examples/`:
+- `examples/sample_matrix.xlsx` — five-row matrix with representative comments
+- `examples/sample_working_paper.pdf` — working paper text matching the sample comments
+
+### Output format
+
+A single Excel workbook written to `--output` (default:
+`adjudicated_comment_matrix.xlsx`).
+
+The output **preserves**:
+- all original rows
+- the canonical column order
+- the exact canonical header names
+
+The three resolution columns are populated as follows:
+
+| Column | Generated content |
+|--------|------------------|
+| **Comment Disposition** | `Accepted` / `Partially Accepted` / `Rejected` / `Completed` |
+| **Resolution** | Plain-language response to the agency comment |
+| **NTIA Comments** | Revision reference (`Section X, p. Y, l. Z`) and explanatory notes |
+
+**Disposition logic:**
+
+- `Completed` — row was already marked as resolved in the input; existing
+  resolution text is preserved.
+- `Accepted` — editorial/grammar comments, or comments with suggested text.
+- `Partially Accepted` — technical comments without suggested text.
+- `Rejected` — comments containing out-of-scope or already-addressed signals.
+
+---
+
 A practical Python tool for NTIA-style comment resolution matrices. It now behaves like a deterministic engineering pipeline: it ingests a spreadsheet, requires at least one working paper PDF (and supports optional later revisions), analyzes multi-agency feedback at scale, and emits structured artifacts (matrix updates, report patch proposals, FAQ log, section briefs, and briefing bullets).
 
 Implements: SYS-001  
