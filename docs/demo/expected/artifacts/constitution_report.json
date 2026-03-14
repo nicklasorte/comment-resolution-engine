@@ -1,0 +1,246 @@
+{
+  "manifest": {
+    "source_repo": "spectrum-systems",
+    "system_id": "SYS-001",
+    "pinned_commit": null,
+    "pinned_version": "1.0.0",
+    "schema_refs": [
+      {
+        "id": "system-spec",
+        "path": "../docs/system-spec-comment-resolution-engine.md",
+        "version": "1.0.0",
+        "checksum": null,
+        "kind": "schema"
+      }
+    ],
+    "rules_profile_refs": [
+      {
+        "id": "comment-resolution-default",
+        "path": "../src/comment_resolution_engine/rules",
+        "version": "1.0.0",
+        "checksum": null,
+        "kind": null,
+        "profile": "default"
+      }
+    ],
+    "prompt_refs": [
+      {
+        "id": "resolution_engine_prompt",
+        "path": "../prompts/resolution_engine.md",
+        "version": "1.0.0",
+        "checksum": null,
+        "kind": "prompt"
+      },
+      {
+        "id": "codex_run_prompt",
+        "path": "../prompts/codex_run_prompt.md",
+        "version": "1.0.0",
+        "checksum": null,
+        "kind": "prompt"
+      }
+    ],
+    "provenance_standard_ref": {
+      "id": "provenance-guidance",
+      "path": "../docs/provenance-implementation-guidance.md",
+      "version": "1.0.0",
+      "checksum": null,
+      "kind": "provenance"
+    },
+    "error_taxonomy_ref": {
+      "id": "error-taxonomy",
+      "path": "../docs/error-taxonomy.md",
+      "version": "1.0.0",
+      "checksum": null,
+      "kind": "error_taxonomy"
+    },
+    "compatibility_mode": "strict",
+    "manifest_path": "config/constitution.yaml"
+  },
+  "engine_state": {
+    "source_repo": "spectrum-systems",
+    "system_id": "SYS-001",
+    "spec_version": "1.0.0",
+    "schema_version": "1.0.0",
+    "provenance_version": "1.0.0",
+    "error_taxonomy_version": "1.0.0",
+    "rules_profile": null,
+    "rules_version": null,
+    "prompt_versions": {}
+  },
+  "fingerprint": {
+    "source_repo": "spectrum-systems",
+    "system_id": "SYS-001",
+    "pinned_commit": null,
+    "pinned_version": "1.0.0",
+    "schemas": [
+      {
+        "id": "system-spec",
+        "kind": "schema",
+        "path": "../docs/system-spec-comment-resolution-engine.md",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/system-spec-comment-resolution-engine.md",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": false,
+        "sha256": "d8c27604d399a09d96a4b0b98ef6175a45d8c9cae6ae1f970d38593fc293bd10"
+      }
+    ],
+    "rules_profiles": [
+      {
+        "id": "comment-resolution-default",
+        "kind": null,
+        "path": "../src/comment_resolution_engine/rules",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/src/comment_resolution_engine/rules",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": true,
+        "sha256": "c3669f99ed1731ccd5e704c3975259139f24e43bc3dc6ead6679d90d99ec5c81"
+      }
+    ],
+    "prompts": [
+      {
+        "id": "resolution_engine_prompt",
+        "kind": "prompt",
+        "path": "../prompts/resolution_engine.md",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/prompts/resolution_engine.md",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": false,
+        "sha256": "da40edb20e77b1710dfdf14a2d029625bf88f22f7c8564b0df9a299287e7259c"
+      },
+      {
+        "id": "codex_run_prompt",
+        "kind": "prompt",
+        "path": "../prompts/codex_run_prompt.md",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/prompts/codex_run_prompt.md",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": false,
+        "sha256": "ee2a37812f83dfc4e11cdbec75c5941588419ef079e50e3fd68a5cacef448326"
+      }
+    ],
+    "provenance_standard": {
+      "id": "provenance-guidance",
+      "kind": "provenance",
+      "path": "../docs/provenance-implementation-guidance.md",
+      "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/provenance-implementation-guidance.md",
+      "exists": true,
+      "version": "1.0.0",
+      "checksum": null,
+      "is_directory": false,
+      "sha256": "5be9ebe1810be68b20c93126630d5b43b7642e2b0f9dd655e3b5776d845e6775"
+    },
+    "error_taxonomy": {
+      "id": "error-taxonomy",
+      "kind": "error_taxonomy",
+      "path": "../docs/error-taxonomy.md",
+      "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/error-taxonomy.md",
+      "exists": true,
+      "version": "1.0.0",
+      "checksum": null,
+      "is_directory": false,
+      "sha256": "dae7f1055b814d0f30bf6352e291ffc645ca27754730bbdace1d9e03a4bea078"
+    }
+  },
+  "findings": [],
+  "compatibility_mode": "strict",
+  "compatible": true,
+  "generated_at": "2026-03-14T20:46:21.087627+00:00",
+  "constitution_context": {
+    "source_repo": "spectrum-systems",
+    "system_id": "SYS-001",
+    "pinned_version": "1.0.0",
+    "pinned_commit": null,
+    "schema_version": "1.0.0",
+    "provenance_guidance_version": "1.0.0",
+    "error_taxonomy_version": "1.0.0",
+    "rules_profile": "default",
+    "rules_version": "1.0.0",
+    "prompt_versions": {
+      "resolution_engine_prompt": "1.0.0",
+      "codex_run_prompt": "1.0.0"
+    },
+    "compatibility_mode": "strict",
+    "fingerprint": {
+      "source_repo": "spectrum-systems",
+      "system_id": "SYS-001",
+      "pinned_commit": null,
+      "pinned_version": "1.0.0",
+      "schemas": [
+        {
+          "id": "system-spec",
+          "kind": "schema",
+          "path": "../docs/system-spec-comment-resolution-engine.md",
+          "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/system-spec-comment-resolution-engine.md",
+          "exists": true,
+          "version": "1.0.0",
+          "checksum": null,
+          "is_directory": false,
+          "sha256": "d8c27604d399a09d96a4b0b98ef6175a45d8c9cae6ae1f970d38593fc293bd10"
+        }
+      ],
+      "rules_profiles": [
+        {
+          "id": "comment-resolution-default",
+          "kind": null,
+          "path": "../src/comment_resolution_engine/rules",
+          "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/src/comment_resolution_engine/rules",
+          "exists": true,
+          "version": "1.0.0",
+          "checksum": null,
+          "is_directory": true,
+          "sha256": "c3669f99ed1731ccd5e704c3975259139f24e43bc3dc6ead6679d90d99ec5c81"
+        }
+      ],
+      "prompts": [
+        {
+          "id": "resolution_engine_prompt",
+          "kind": "prompt",
+          "path": "../prompts/resolution_engine.md",
+          "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/prompts/resolution_engine.md",
+          "exists": true,
+          "version": "1.0.0",
+          "checksum": null,
+          "is_directory": false,
+          "sha256": "da40edb20e77b1710dfdf14a2d029625bf88f22f7c8564b0df9a299287e7259c"
+        },
+        {
+          "id": "codex_run_prompt",
+          "kind": "prompt",
+          "path": "../prompts/codex_run_prompt.md",
+          "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/prompts/codex_run_prompt.md",
+          "exists": true,
+          "version": "1.0.0",
+          "checksum": null,
+          "is_directory": false,
+          "sha256": "ee2a37812f83dfc4e11cdbec75c5941588419ef079e50e3fd68a5cacef448326"
+        }
+      ],
+      "provenance_standard": {
+        "id": "provenance-guidance",
+        "kind": "provenance",
+        "path": "../docs/provenance-implementation-guidance.md",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/provenance-implementation-guidance.md",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": false,
+        "sha256": "5be9ebe1810be68b20c93126630d5b43b7642e2b0f9dd655e3b5776d845e6775"
+      },
+      "error_taxonomy": {
+        "id": "error-taxonomy",
+        "kind": "error_taxonomy",
+        "path": "../docs/error-taxonomy.md",
+        "resolved_path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/docs/error-taxonomy.md",
+        "exists": true,
+        "version": "1.0.0",
+        "checksum": null,
+        "is_directory": false,
+        "sha256": "dae7f1055b814d0f30bf6352e291ffc645ca27754730bbdace1d9e03a4bea078"
+      }
+    }
+  }
+}

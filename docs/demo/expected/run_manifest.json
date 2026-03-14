@@ -1,0 +1,151 @@
+{
+  "run_id": "resolution-run-26e706fe6d9e410b9f95f74ae25574a7",
+  "tool_name": "comment-resolution-engine",
+  "tool_version": "0.1.0",
+  "timestamp_utc": "2026-03-14T20:46:21.244237+00:00",
+  "status": "success",
+  "warnings": [],
+  "output_dir": "docs/demo/expected",
+  "counts_summary": {
+    "total_comments": 3,
+    "completed_comments": 0,
+    "comments_needing_response": 3,
+    "counts_by_disposition": {
+      "Partial Accept": 1,
+      "Accept": 2
+    },
+    "counts_by_reason_code": {
+      "TECH_COMMENT_NO_CONTEXT": 1,
+      "terminology_cleanup": 1,
+      "Typo definition middle / typo definition / mile infrastructure": 1
+    },
+    "counts_by_source_agency": {
+      "Agency A": 1,
+      "Agency B": 1,
+      "Agency C": 1
+    },
+    "missing_field_count": 9,
+    "duplicate_comment_id_count": 0
+  },
+  "inputs": [
+    {
+      "role": "reviewer_comment_set",
+      "path": "docs/demo/inputs/reviewer_comments.json",
+      "sha256": "078f00cbbddf1b9a92a8f2ef5c132c38adc344256fd040d48671768aa89015ac",
+      "bytes": 1771
+    },
+    {
+      "role": "constitution_manifest",
+      "path": "config/constitution.yaml",
+      "sha256": "4ae4e86d65097b1878adfda470bb6776602fba8afa6d69e2af6a842551f0f404",
+      "bytes": 773
+    },
+    {
+      "role": "working_paper_rev1",
+      "path": "docs/demo/inputs/demo_working_paper.pdf",
+      "sha256": "a4db1bde2b472d0bb457089f188fc17c343716261f29e2282a2a2b8388e12369",
+      "bytes": 2783
+    }
+  ],
+  "outputs": [
+    {
+      "role": "comment_resolution_matrix",
+      "path": "docs/demo/expected/artifacts/comment_resolution_matrix.json",
+      "sha256": "621bb9ef75c066ba31e9ab558c7ab30f14aa6b435cf136f1ec93549bc01532d1",
+      "bytes": 12323
+    },
+    {
+      "role": "provenance_record",
+      "path": "docs/demo/expected/artifacts/provenance_record.json",
+      "sha256": "b36cb46fc9f897022da81d00172667f49d6111bf95b17b9501c9bdda804bbf9f",
+      "bytes": 6649
+    },
+    {
+      "role": "legacy_comment_resolution_matrix",
+      "path": "docs/demo/expected/artifacts/legacy_comment_resolution_matrix.xlsx",
+      "sha256": "f26a5b0c291486f497d8dee9fca76445e29c1302943f2050d405656fcf936b8f",
+      "bytes": 6177
+    },
+    {
+      "role": "patches",
+      "path": "docs/demo/expected/artifacts/patches.json",
+      "sha256": "fead088bc1176bfc694c24625869c71c3a3d2e2829785d7b7a1c63e2e1bb03ac",
+      "bytes": 7814
+    },
+    {
+      "role": "shared_resolutions",
+      "path": "docs/demo/expected/artifacts/shared_resolutions.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    {
+      "role": "faq",
+      "path": "docs/demo/expected/artifacts/faq.md",
+      "sha256": "d56dda4a6ede52a1069d169e3b208f9ed11f4aff41fd3efccd4923c1fd5aa8a6",
+      "bytes": 17
+    },
+    {
+      "role": "section_summary",
+      "path": "docs/demo/expected/artifacts/section_summary.md",
+      "sha256": "ce876edbb94ee01e368113f01d7c2ecab2516d89ec4542ba93845922c9c92f6c",
+      "bytes": 713
+    },
+    {
+      "role": "briefing",
+      "path": "docs/demo/expected/artifacts/briefing.md",
+      "sha256": "ce2544be308b6ce5c768edb14f2530addf52f5d86e050bc200c3da2c0718a252",
+      "bytes": 428
+    },
+    {
+      "role": "provenance_records",
+      "path": "docs/demo/expected/debug/provenance_records.json",
+      "sha256": "636dad1807851374403a61924365dcffac2d47b3f8b113d0b0de3a9fcf81a330",
+      "bytes": 5584
+    },
+    {
+      "role": "constitution_report",
+      "path": "docs/demo/expected/artifacts/constitution_report.json",
+      "sha256": "a8cde93c4352025020595f642638fe878de4ef20f8a880e4a085b8e0438c88bf",
+      "bytes": 8574
+    },
+    {
+      "role": "reviewer_comment_set",
+      "path": "docs/demo/expected/artifacts/reviewer_comment_set.json",
+      "sha256": "7a325246527459afd2df5066f05c5c7a789d99470e8e643dd857ee294cd52ce4",
+      "bytes": 2003
+    },
+    {
+      "role": "normalized_records",
+      "path": "docs/demo/expected/debug/normalized_records.json",
+      "sha256": "91dd950eaf90d8503f87355d60f8be0c3d8037a3e8fdcd8c44c46835eda18e14",
+      "bytes": 3822
+    },
+    {
+      "role": "adjudication_decisions",
+      "path": "docs/demo/expected/debug/adjudication_decisions.json",
+      "sha256": "9a7e4e8cc9d1bdcdc2e162d4deb4fce16390cc72c22f8e9ddd5830995ee5d56f",
+      "bytes": 1304
+    },
+    {
+      "role": "summary",
+      "path": "docs/demo/expected/summary.json",
+      "sha256": "550b4c3c35fb6fb4da56d987ea7cb6befe54cf9f43908d84a61cdb50c3a212bc",
+      "bytes": 486
+    }
+  ],
+  "constitution": {
+    "path": "config/constitution.yaml",
+    "sha256": "4ae4e86d65097b1878adfda470bb6776602fba8afa6d69e2af6a842551f0f404",
+    "pinned_version": "1.0.0",
+    "pinned_commit": null,
+    "compatibility_mode": "strict"
+  },
+  "standards_manifest": {
+    "path": "/home/runner/work/comment-resolution-engine/comment-resolution-engine/config/contracts/matrix_contract.yaml",
+    "sha256": "73c16baf93fd30e380adb9e060f9bc6bc7fcf80e96013daeef007ba4d5723b43"
+  },
+  "constitution_report": {
+    "path": "docs/demo/expected/artifacts/constitution_report.json",
+    "sha256": "a8cde93c4352025020595f642638fe878de4ef20f8a880e4a085b8e0438c88bf"
+  }
+}

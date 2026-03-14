@@ -1,0 +1,72 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2238 >>
+stream
+BT
+/F1 10 Tf
+50 750 Td
+14 TL
+(WORKING PAPER ON SPECTRUM COMPATIBILITY ANALYSIS) Tj T*
+(Draft Revision 1 -- For Comment) Tj T*
+() Tj T*
+(1. Introduction) Tj T*
+(10  This working paper presents a spectrum compatibility analysis for proposed new radio) Tj T*
+(14  services operating in the 3.5-3.7 GHz band. The analysis evaluates potential) Tj T*
+(18  interference between new entrants and incumbent FSS earth stations.) Tj T*
+(22  1.2 The executive summary provides an overview of compatibility findings.) Tj T*
+(25  Based on the analysis, limited spectrum sharing is feasible under the defined) Tj T*
+(26  protection criteria, subject to operational constraints described in Section 6.) Tj T*
+() Tj T*
+(2. Background and Scope) Tj T*
+(30  2.1 The 3.5 GHz band has been identified as a candidate for new broadband services.) Tj T*
+(34  2.4 Terminology: the term 'incumbent' refers to services with prior coordination) Tj T*
+(36  rights. Capitalization follows ITU style guide conventions.) Tj T*
+() Tj T*
+(3. Interference Analysis Methodology) Tj T*
+(40  3.1 The propagation model is detailed in Section 5.1.) Tj T*
+(44  3.2 The compatibility analysis evaluates single-entry interference from a) Tj T*
+(48  representative transmitter. The protection criterion adopted is I/N = -6 dB.) Tj T*
+(52  3.2 Derivation: the -6 dB threshold corresponds to a 25% increase in system) Tj T*
+(56  noise temperature per ITU-R RA.769 Table 1.) Tj T*
+() Tj T*
+(4. Protection Criteria) Tj T*
+(60  4.1 The -6 dB I/N protection criterion for FSS earth stations is adopted.) Tj T*
+(64  4.1 This is consistent with Radio Regulations and ITU-R Recommendations.) Tj T*
+() Tj T*
+(5. Numerical Results) Tj T*
+(70  5.1 Propagation model: ITU-R P.452 for transhorizon, free-space for LOS.) Tj T*
+(74  5.3 Path loss calculations used the composite P.452 model [see Section 5.1].) Tj T*
+(78  5.3 Table 5.1 shows minimum separation distances for each deployment scenario.) Tj T*
+() Tj T*
+(6. Conclusions) Tj T*
+(84  6.1 Spectrum sharing is feasible with: max EIRP +23 dBm/MHz; 50 km coordination) Tj T*
+(88  zones around FSS sites; OOB emissions per ITU-R SM.1541.) Tj T*
+(92  6.2 Administrations should coordinate with incumbent operators prior to licensing.) Tj T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000002531 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2599
+%%EOF

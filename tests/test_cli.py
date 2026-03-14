@@ -34,6 +34,9 @@ def test_cli_parser_accepts_expected_args():
         "rev2.json",
         "--rev2-draft-output",
         "rev2.md",
+        "--output-dir",
+        "outputs/package",
+        "--emit-run-manifest",
         "--constitution",
         "config/constitution.yaml",
         "--constitution-report",
@@ -65,6 +68,8 @@ def test_cli_parser_accepts_expected_args():
     assert args.assemble_rev2 is True
     assert args.rev2_sections_output == "rev2.json"
     assert args.rev2_draft_output == "rev2.md"
+    assert args.output_dir == "outputs/package"
+    assert args.emit_run_manifest is True
     assert args.constitution == "config/constitution.yaml"
     assert args.constitution_report == "outputs/constitution_report.json"
     assert args.compatibility_mode == "warn"
@@ -90,3 +95,5 @@ def test_cli_parser_accepts_reviewer_comment_set_arg():
     assert args.comments is None
     assert args.report == ["report_rev1.pdf"]
     assert args.output == "out.xlsx"
+    assert args.emit_run_manifest is False
+    assert args.output_dir is None

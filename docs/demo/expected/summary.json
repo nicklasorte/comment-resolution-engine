@@ -1,0 +1,21 @@
+{
+  "total_comments": 3,
+  "completed_comments": 0,
+  "comments_needing_response": 3,
+  "counts_by_disposition": {
+    "Partial Accept": 1,
+    "Accept": 2
+  },
+  "counts_by_reason_code": {
+    "TECH_COMMENT_NO_CONTEXT": 1,
+    "terminology_cleanup": 1,
+    "Typo definition middle / typo definition / mile infrastructure": 1
+  },
+  "counts_by_source_agency": {
+    "Agency A": 1,
+    "Agency B": 1,
+    "Agency C": 1
+  },
+  "missing_field_count": 9,
+  "duplicate_comment_id_count": 0
+}
