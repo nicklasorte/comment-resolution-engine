@@ -22,28 +22,63 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 # ---------------------------------------------------------------------------
 # Dependency helpers
 # ---------------------------------------------------------------------------
 
-def _require_pandas():
+_INSTALL_HINT = (
+    "Create a virtualenv and install dependencies:\n"
+    "  python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+)
+
+
+def _exit_dependency_error(message: str) -> NoReturn:
+    print(f"{message}\n{_INSTALL_HINT}")
+    sys.exit(1)
+
+
+def _require_module(module_name: str, friendly_name: str):
     try:
-        import pandas as pd
-        return pd
-    except ModuleNotFoundError:
-        print("ERROR: pandas is required. Install with: pip install -r requirements.txt")
-        sys.exit(1)
+        return importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        _exit_dependency_error(f"ERROR: {friendly_name} is required for this command. ({exc})")
+    except Exception as exc:  # Handles compiled extension issues like missing _cffi_backend
+        _exit_dependency_error(
+            f"ERROR: {friendly_name} failed to import ({type(exc).__name__}: {exc}). "
+            "Reinstall dependencies."
+        )
+
+
+def _require_pandas():
+    return _require_module("pandas", "pandas")
 
 
 def _require_openpyxl():
-    try:
-        import openpyxl  # noqa: F401
-    except ModuleNotFoundError:
-        print("ERROR: openpyxl is required. Install with: pip install -r requirements.txt")
-        sys.exit(1)
+    _require_module("openpyxl", "openpyxl")
+
+
+def _require_pypdf():
+    return _require_module("pypdf", "pypdf/cryptography")
+
+
+def preflight_check(verbose: bool = False) -> None:
+    """
+    Validate that all required runtime dependencies can be imported.
+    """
+    for mod, friendly in (
+        ("pandas", "pandas"),
+        ("openpyxl", "openpyxl"),
+        ("pypdf", "pypdf"),
+        ("cryptography", "cryptography"),
+    ):
+        _require_module(mod, friendly)
+    if verbose:
+        print("Preflight OK: required imports succeeded.")
 
 
 # ---------------------------------------------------------------------------
@@ -87,19 +122,27 @@ def load_matrix(path: str):
 def parse_pdf(path: str) -> str:
     """Extract full text from the working paper PDF."""
     try:
-        from pypdf import PdfReader
+        pypdf = _require_pypdf()
+        PdfReader = pypdf.PdfReader
+    except SystemExit:
+        raise
+    except Exception as exc:
+        _exit_dependency_error(
+            f"ERROR: PDF parsing dependencies failed to load ({type(exc).__name__}: {exc}). "
+            "Reinstall dependencies."
+        )
+
+    try:
         reader = PdfReader(path)
         pages = [page.extract_text() or "" for page in reader.pages]
         return "\n".join(pages)
-    except ModuleNotFoundError:
+    except Exception as exc:
         print(
-            "WARNING: pypdf not installed; PDF text will be unavailable. "
-            "Install with: pip install pypdf"
+            f"ERROR: Could not parse PDF '{path}': {type(exc).__name__}: {exc}\n"
+            "Hint: ensure the PDF is not password protected and dependencies are installed "
+            "with `pip install -r requirements.txt`."
         )
-    except BaseException as exc:
-        # Catches both standard exceptions and C-extension panics (e.g. pyo3)
-        print(f"WARNING: Could not parse PDF '{path}': {type(exc).__name__}: {exc}")
-    return ""
+        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +360,8 @@ def write_output(df, output_path: str) -> None:
 # ---------------------------------------------------------------------------
 
 def run(matrix_path: str, paper_path: str, output_path: str) -> None:
+    preflight_check()
+
     print(f"Loading matrix: {matrix_path}")
     df = load_matrix(matrix_path)
 
@@ -387,7 +432,16 @@ def main() -> None:
         default="adjudicated_comment_matrix.xlsx",
         help="Output path for the adjudicated matrix (default: adjudicated_comment_matrix.xlsx).",
     )
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Validate required dependencies and exit.",
+    )
     args = parser.parse_args()
+
+    if args.preflight:
+        preflight_check(verbose=True)
+        return
 
     if not Path(args.matrix).exists():
         print(f"ERROR: Matrix file not found: {args.matrix}")
