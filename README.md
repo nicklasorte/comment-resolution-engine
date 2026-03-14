@@ -21,6 +21,12 @@ python resolve_comments.py \
     --matrix examples/sample_matrix.xlsx \
     --paper  examples/sample_working_paper.pdf \
     --output /tmp/test_adjudicated.xlsx
+
+# End-to-end canonical path (JSON artifact in, canonical artifacts + Excel out)
+python -m comment_resolution_engine.cli \
+    --reviewer-comment-set examples/contracts/reviewer_comment_set_example.json \
+    --report examples/sample_working_paper.pdf \
+    --output /tmp/test_adjudicated.xlsx
 ```
 
 ### CLI reference

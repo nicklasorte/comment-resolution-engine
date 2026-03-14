@@ -14,6 +14,7 @@ from .contracts import DEFAULT_CONSTITUTION_PATH
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build an NTIA comment-resolution workbook (NTIA Comments, Comment Disposition, Resolution) from a comment matrix and working paper PDF revisions.")
     parser.add_argument("--comments", required=False, help="Path to input Excel comment matrix.")
+    parser.add_argument("--reviewer-comment-set", dest="reviewer_comment_set", required=False, help="Path to canonical reviewer_comment_set artifact (JSON or YAML).")
     parser.add_argument(
         "--report",
         required=False,
@@ -58,8 +59,19 @@ def main() -> None:
     if not constitution_report_path and args.check_constitution:
         constitution_report_path = Path("outputs/constitution_report.json")
     try:
-        if not args.validate_rules and not args.check_constitution and (not args.comments or not args.report or not args.output):
-            print("ERROR: --comments, --report, and --output are required unless --validate-rules is used.")
+        is_pipeline_run = not args.validate_rules and not args.check_constitution
+        comments_path = args.reviewer_comment_set or args.comments
+        if is_pipeline_run and not args.output:
+            print("ERROR: --output is required for pipeline runs.")
+            sys.exit(1)
+        if is_pipeline_run and not args.report:
+            print("ERROR: --report is required for pipeline runs.")
+            sys.exit(1)
+        if is_pipeline_run and not comments_path:
+            print("ERROR: Provide either --comments or --reviewer-comment-set for pipeline runs.")
+            sys.exit(1)
+        if is_pipeline_run and args.comments and args.reviewer_comment_set:
+            print("ERROR: Use only one of --comments or --reviewer-comment-set, not both.")
             sys.exit(1)
         if args.validate_rules:
             if not args.rules_path:
@@ -91,7 +103,7 @@ def main() -> None:
             print(f"Constitution check {status}. Report written to {constitution_report_path}.")
             sys.exit(0)
         df = run_pipeline(
-            comments_path=args.comments,
+            comments_path=comments_path,
             report_path=args.report,
             output_path=args.output,
             config_path=args.config,
